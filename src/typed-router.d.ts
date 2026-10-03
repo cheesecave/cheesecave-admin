@@ -25,11 +25,14 @@ declare module 'vue-router/auto-routes' {
     '/DatabaseViewer': RouteRecordInfo<'/DatabaseViewer', '/DatabaseViewer', Record<never, never>, Record<never, never>>,
     '/fallback-sources': RouteRecordInfo<'/fallback-sources', '/fallback-sources', Record<never, never>, Record<never, never>>,
     '/health': RouteRecordInfo<'/health', '/health', Record<never, never>, Record<never, never>>,
+    '/homepage': RouteRecordInfo<'/homepage', '/homepage', Record<never, never>, Record<never, never>>,
     '/invitations': RouteRecordInfo<'/invitations', '/invitations', Record<never, never>, Record<never, never>>,
     '/login': RouteRecordInfo<'/login', '/login', Record<never, never>, Record<never, never>>,
     '/QuotaOverview': RouteRecordInfo<'/QuotaOverview', '/QuotaOverview', Record<never, never>, Record<never, never>>,
     '/quotas': RouteRecordInfo<'/quotas', '/quotas', Record<never, never>, Record<never, never>>,
     '/repositories': RouteRecordInfo<'/repositories', '/repositories', Record<never, never>, Record<never, never>>,
+    '/site': RouteRecordInfo<'/site', '/site', Record<never, never>, Record<never, never>>,
+    '/site-branding': RouteRecordInfo<'/site-branding', '/site-branding', Record<never, never>, Record<never, never>>,
     '/storage': RouteRecordInfo<'/storage', '/storage', Record<never, never>, Record<never, never>>,
     '/tasks': RouteRecordInfo<'/tasks', '/tasks', Record<never, never>, Record<never, never>>,
     '/users': RouteRecordInfo<'/users', '/users', Record<never, never>, Record<never, never>>,
@@ -74,6 +77,10 @@ declare module 'vue-router/auto-routes' {
       routes: '/health'
       views: never
     }
+    'src/pages/homepage.vue': {
+      routes: '/homepage'
+      views: never
+    }
     'src/pages/invitations.vue': {
       routes: '/invitations'
       views: never
@@ -92,6 +99,14 @@ declare module 'vue-router/auto-routes' {
     }
     'src/pages/repositories.vue': {
       routes: '/repositories'
+      views: never
+    }
+    'src/pages/site.vue': {
+      routes: '/site'
+      views: never
+    }
+    'src/pages/site-branding.vue': {
+      routes: '/site-branding'
       views: never
     }
     'src/pages/storage.vue': {

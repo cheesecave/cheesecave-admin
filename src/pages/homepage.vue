@@ -1,6 +1,6 @@
 <script setup>
 definePage({
-  redirect: { path: "/site", query: { tab: "branding" } },
+  redirect: { path: "/site", query: { tab: "homepage" } },
 });
 </script>
 

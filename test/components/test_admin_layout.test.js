@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { defineComponent, h } from "vue";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { defineComponent, h, nextTick } from "vue";
 
 import { ElementPlusStubs } from "../helpers/vue";
 
@@ -64,14 +64,18 @@ vi.mock("@/components/GlobalSearch.vue", () => ({
 import AdminLayout from "@/components/AdminLayout.vue";
 
 describe("AdminLayout", () => {
+  const wrappers = [];
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.route.path = "/repositories";
     mocks.themeStore.isDark = false;
   });
+  afterEach(() => {
+    wrappers.splice(0).forEach((wrapper) => wrapper.unmount());
+  });
 
   function mountLayout() {
-    return mount(AdminLayout, {
+    const wrapper = mount(AdminLayout, {
       slots: {
         default:
           '<section data-slot-content="true">Dashboard content</section>',
@@ -80,6 +84,8 @@ describe("AdminLayout", () => {
         stubs: ElementPlusStubs,
       },
     });
+    wrappers.push(wrapper);
+    return wrapper;
   }
 
   it.each([false, true])("shows the frontend commit with dirty=%s", (dirty) => {
@@ -117,12 +123,14 @@ describe("AdminLayout", () => {
     expect(wrapper.text()).toContain("Admin Portal");
     expect(wrapper.text()).toContain("Repositories");
     expect(wrapper.text()).toContain("Quota Overview");
-    expect(wrapper.text()).toContain("Site Branding");
+    expect(wrapper.findAll('[data-index="/site"]')).toHaveLength(1);
+    expect(wrapper.get('[data-index="/site"]').text()).toBe("Site");
+    expect(wrapper.find('[data-index="/homepage"]').exists()).toBe(false);
     expect(wrapper.text()).toContain("DeepGHS Hub Administration");
     expect(wrapper.get("h1").attributes("title")).toBe(
       "DeepGHS Hub Administration",
     );
-    expect(wrapper.find('[data-index="/site-branding"]').exists()).toBe(true);
+    expect(wrapper.find('[data-index="/site-branding"]').exists()).toBe(false);
     expect(wrapper.find('[data-slot-content="true"]').exists()).toBe(true);
 
     await wrapper
@@ -149,5 +157,60 @@ describe("AdminLayout", () => {
 
     expect(mocks.adminStore.logout).toHaveBeenCalledTimes(1);
     expect(mocks.router.push).toHaveBeenCalledWith("/login");
+  });
+
+  it("opens collapsed mobile navigation and closes it when a page is selected", async () => {
+    const wrapper = mountLayout();
+    const toggle = wrapper.get('[aria-label="Open navigation"]');
+    expect(toggle.attributes("aria-expanded")).toBe("false");
+    expect(wrapper.get("#admin-navigation").classes()).not.toContain(
+      "sidebar-open",
+    );
+    expect(wrapper.find(".navigation-backdrop").exists()).toBe(false);
+    await toggle.trigger("click");
+    expect(toggle.attributes("aria-expanded")).toBe("true");
+    expect(wrapper.get("#admin-navigation").classes()).toContain(
+      "sidebar-open",
+    );
+    expect(wrapper.get(".content-layout").attributes()).toHaveProperty("inert");
+    await wrapper.get('[data-index="/site"]').trigger("click");
+    expect(toggle.attributes("aria-expanded")).toBe("false");
+    expect(wrapper.find(".navigation-backdrop").exists()).toBe(false);
+    expect(wrapper.get(".content-layout").attributes()).not.toHaveProperty(
+      "inert",
+    );
+  });
+
+  it.each(["close button", "backdrop", "Escape"])(
+    "dismisses the mobile drawer through %s",
+    async (action) => {
+      const wrapper = mountLayout();
+      await wrapper.get('[aria-label="Open navigation"]').trigger("click");
+      if (action === "close button") {
+        await wrapper.get('[aria-label="Close navigation"]').trigger("click");
+      } else if (action === "backdrop") {
+        await wrapper.get(".navigation-backdrop").trigger("click");
+      } else {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+        await nextTick();
+      }
+      expect(wrapper.get("#admin-navigation").classes()).not.toContain(
+        "sidebar-open",
+      );
+      expect(wrapper.find(".navigation-backdrop").exists()).toBe(false);
+    },
+  );
+
+  it("closes the mobile drawer when the viewport returns to desktop", async () => {
+    const wrapper = mountLayout();
+    await wrapper.get('[aria-label="Open navigation"]').trigger("click");
+    window.dispatchEvent(new Event("resize"));
+    await nextTick();
+    expect(wrapper.get("#admin-navigation").classes()).not.toContain(
+      "sidebar-open",
+    );
+    expect(wrapper.get(".content-layout").attributes()).not.toHaveProperty(
+      "inert",
+    );
   });
 });

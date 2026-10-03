@@ -14,6 +14,26 @@ export async function getSiteConfig() {
   return response.data;
 }
 
+// ===== Homepage =====
+
+export async function getSiteHomepage(token) {
+  const response = await createAdminClient(token).get("/site-homepage", {
+    timeout: 30000,
+  });
+  return response.data;
+}
+
+export async function updateSiteHomepage(token, homepage) {
+  const response = await createAdminClient(token).put(
+    "/site-homepage",
+    homepage,
+    {
+      timeout: 30000,
+    },
+  );
+  return response.data;
+}
+
 // ===== Site Branding =====
 
 export async function getSiteBranding(token) {

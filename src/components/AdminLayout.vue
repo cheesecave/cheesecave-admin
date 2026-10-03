@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAdminStore } from "@/stores/admin";
 import { useThemeStore } from "@/stores/theme";
@@ -31,7 +31,35 @@ const globalSearchRef = ref(null);
 const sidebarScrollRef = ref(null);
 const canScrollUp = ref(false);
 const canScrollDown = ref(false);
+const mobileNavigationOpen = ref(false);
+const menuButtonRef = ref(null);
+const closeButtonRef = ref(null);
 let sidebarResizeObserver;
+
+async function openMobileNavigation() {
+  mobileNavigationOpen.value = true;
+  await nextTick();
+  closeButtonRef.value?.focus();
+  updateSidebarScrollState();
+}
+
+async function closeMobileNavigation() {
+  if (!mobileNavigationOpen.value) return;
+  mobileNavigationOpen.value = false;
+  await nextTick();
+  menuButtonRef.value?.focus();
+}
+
+function handleNavigationResize() {
+  if (window.innerWidth > 768) closeMobileNavigation();
+}
+
+function handleNavigationKey(event) {
+  if (event.key === "Escape" && mobileNavigationOpen.value) {
+    event.preventDefault();
+    closeMobileNavigation();
+  }
+}
 
 function updateSidebarScrollState() {
   const sidebar = sidebarScrollRef.value;
@@ -50,6 +78,8 @@ function scrollSidebar(direction) {
 }
 
 onMounted(() => {
+  window.addEventListener("keydown", handleNavigationKey);
+  window.addEventListener("resize", handleNavigationResize);
   updateSidebarScrollState();
   sidebarResizeObserver = new ResizeObserver(updateSidebarScrollState);
   sidebarResizeObserver.observe(sidebarScrollRef.value);
@@ -57,6 +87,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener("keydown", handleNavigationKey);
+  window.removeEventListener("resize", handleNavigationResize);
   sidebarResizeObserver?.disconnect();
 });
 
@@ -75,8 +107,8 @@ function openGlobalSearch() {
 const menuItems = [
   { path: "/", label: "Dashboard", icon: "i-carbon-dashboard" },
   {
-    path: "/site-branding",
-    label: "Site Branding",
+    path: "/site",
+    label: "Site",
     icon: "i-carbon-paint-brush",
   },
   { path: "/users", label: "Users", icon: "i-carbon-user-multiple" },
@@ -124,8 +156,22 @@ const menuItems = [
 
 <template>
   <el-container class="admin-layout">
+    <button
+      v-if="mobileNavigationOpen"
+      type="button"
+      class="navigation-backdrop"
+      aria-label="Close navigation overlay"
+      tabindex="-1"
+      @click="closeMobileNavigation"
+    />
     <!-- Sidebar -->
-    <el-aside width="250px" class="sidebar">
+    <el-aside
+      id="admin-navigation"
+      width="250px"
+      class="sidebar"
+      :class="{ 'sidebar-open': mobileNavigationOpen }"
+      aria-label="Admin navigation"
+    >
       <div class="sidebar-header">
         <div
           v-if="!siteBrandingStore.branding.header_logo"
@@ -140,6 +186,15 @@ const menuItems = [
         <h2 class="text-xl font-bold ml-2 text-gray-900 dark:text-gray-100">
           Admin Portal
         </h2>
+        <button
+          ref="closeButtonRef"
+          type="button"
+          class="mobile-navigation-button navigation-close"
+          aria-label="Close navigation"
+          @click="closeMobileNavigation"
+        >
+          <span class="i-carbon-close" aria-hidden="true" />
+        </button>
       </div>
 
       <div class="sidebar-navigation">
@@ -160,6 +215,7 @@ const menuItems = [
               v-for="item in menuItems"
               :key="item.path"
               :index="item.path"
+              @click="closeMobileNavigation"
             >
               <div :class="item.icon" class="mr-2" />
               <span>{{ item.label }}</span>
@@ -205,9 +261,23 @@ const menuItems = [
     </el-aside>
 
     <!-- Main Content -->
-    <el-container class="content-layout">
+    <el-container
+      class="content-layout"
+      :inert="mobileNavigationOpen ? '' : undefined"
+    >
       <!-- Header -->
       <el-header class="header">
+        <button
+          ref="menuButtonRef"
+          type="button"
+          class="mobile-navigation-button navigation-toggle"
+          aria-label="Open navigation"
+          aria-controls="admin-navigation"
+          :aria-expanded="mobileNavigationOpen"
+          @click="openMobileNavigation"
+        >
+          <span class="i-carbon-menu" aria-hidden="true" />
+        </button>
         <div class="header-title">
           <h1
             class="text-xl font-semibold text-gray-900 dark:text-gray-100"
@@ -218,7 +288,11 @@ const menuItems = [
         </div>
 
         <div class="header-actions">
-          <el-button @click="openGlobalSearch" class="search-button">
+          <el-button
+            @click="openGlobalSearch"
+            class="search-button"
+            aria-label="Search"
+          >
             <div class="i-carbon-search text-lg" />
             <span class="ml-2 hidden sm:inline">Search</span>
             <el-tag
@@ -229,15 +303,25 @@ const menuItems = [
               Ctrl+K
             </el-tag>
           </el-button>
-          <el-button circle @click="themeStore.toggle()" class="mr-2">
+          <el-button
+            circle
+            @click="themeStore.toggle()"
+            class="mr-2"
+            aria-label="Toggle color theme"
+          >
             <div v-if="themeStore.isDark" class="i-carbon-moon text-lg" />
             <div v-else class="i-carbon-asleep text-lg" />
           </el-button>
-          <el-button type="danger" @click="handleLogout">
+          <el-button
+            type="danger"
+            @click="handleLogout"
+            aria-label="Logout"
+            class="logout-button"
+          >
             <template #icon>
               <span class="i-carbon-logout" aria-hidden="true" />
             </template>
-            Logout
+            <span class="logout-label">Logout</span>
           </el-button>
         </div>
       </el-header>
@@ -260,6 +344,11 @@ const menuItems = [
   height: 100dvh;
   overflow: hidden;
   background-color: var(--bg-base);
+}
+
+.mobile-navigation-button,
+.navigation-backdrop {
+  display: none;
 }
 
 .sidebar {
@@ -431,5 +520,113 @@ const menuItems = [
   overflow: auto;
   overscroll-behavior: contain;
   background-color: var(--bg-base);
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(280px, calc(100vw - 48px));
+    z-index: 31;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform 0.2s ease,
+      visibility 0.2s;
+  }
+
+  .sidebar-open {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .navigation-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    border: 0;
+    background: rgb(0 0 0 / 45%);
+  }
+
+  .mobile-navigation-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+    font-size: 20px;
+    cursor: pointer;
+  }
+
+  .mobile-navigation-button:focus-visible {
+    outline: 2px solid var(--color-info);
+    outline-offset: 2px;
+  }
+
+  .navigation-close {
+    margin-left: auto;
+    width: 32px;
+    height: 32px;
+    border-color: rgb(255 255 255 / 40%);
+    color: white;
+    background: transparent;
+  }
+
+  .content-layout {
+    width: 100%;
+  }
+
+  .header {
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .header-title {
+    padding-right: 0;
+  }
+
+  .header-title h1 {
+    font-size: 15px;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+
+  .header-actions :deep(.el-button) {
+    margin: 0;
+    padding: 8px;
+  }
+
+  .main-content {
+    padding: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .logout-label {
+    display: none;
+  }
+
+  .header-actions :deep(.el-button) {
+    width: 40px;
+    height: 40px;
+  }
+
+  .logout-button :deep(.el-icon) {
+    margin: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
+  }
 }
 </style>

@@ -40,10 +40,13 @@ declare module 'vue' {
     FileTree: typeof import('./components/FileTree.vue')['default']
     GlobalSearch: typeof import('./components/GlobalSearch.vue')['default']
     HelloWorld: typeof import('./components/HelloWorld.vue')['default']
+    HomepageSettings: typeof import('./components/site/HomepageSettings.vue')['default']
     ProbeReportView: typeof import('./components/ProbeReportView.vue')['default']
     QuotaManager: typeof import('./components/QuotaManager.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SiteBrandingSettings: typeof import('./components/site/SiteBrandingSettings.vue')['default']
+    SiteSettingsHeader: typeof import('./components/site/SiteSettingsHeader.vue')['default']
     StatsCard: typeof import('./components/StatsCard.vue')['default']
   }
   export interface GlobalDirectives {

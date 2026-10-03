@@ -34,7 +34,7 @@ vi.mock("@/components/AdminLayout.vue", () => ({
   }),
 }));
 
-import SiteBrandingPage from "@/pages/site-branding.vue";
+import SiteBrandingPage from "@/components/site/SiteBrandingSettings.vue";
 
 const original = {
   site_name: "DeepGHS Hub",
