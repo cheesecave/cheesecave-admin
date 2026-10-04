@@ -39,6 +39,8 @@ pnpm preview
 
 Build metadata normally reads this repository's Git commit. Source archives and Docker builds can explicitly supply `VITE_GIT_COMMIT` and `VITE_GIT_DIRTY`. Inherited CI configuration was removed before the repository split; the commands above run locally.
 
+Categorized [manual CI checks](docs/development/ci.md) are available for later authorized runs; restoring this configuration does not trigger them.
+
 ## Containers and independent updates
 
 Build an image from this repository. The following example uses Bash:

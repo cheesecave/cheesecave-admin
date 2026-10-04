@@ -1,0 +1,103 @@
+name: Admin checks (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      category:
+        description: Check category (all runs coverage and production build)
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - regression
+          - build
+          - docker
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admin-checks-${{ github.ref }}-${{ inputs.category }}
+  cancel-in-progress: false
+
+env:
+  CI: true
+  VITE_GIT_COMMIT: ${{ github.sha }}
+  VITE_GIT_DIRTY: 'false'
+
+jobs:
+  tests:
+    name: Vitest / ${{ inputs.category }}
+    if: inputs.category == 'all' || inputs.category == 'regression'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.18.1
+          run_install: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Complete Vitest regression suite with coverage
+        run: pnpm test
+
+  build:
+    name: Production build
+    if: inputs.category == 'all' || inputs.category == 'build'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.18.1
+          run_install: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build static application
+        run: pnpm build
+      - name: Verify entry point and generated bundles
+        run: |
+          test -s dist/index.html
+          find dist/assets -name '*.js' -print -quit | grep -q .
+          find dist/assets -name '*.css' -print -quit | grep -q .
+
+  docker:
+    name: Container build and static smoke checks
+    if: inputs.category == 'docker'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Build local image
+        run: |
+          docker build --build-arg VITE_GIT_COMMIT="$VITE_GIT_COMMIT" \
+            --build-arg VITE_GIT_DIRTY=false -t cheesecave-admin:ci .
+      - name: Check nginx, application and license files
+        run: |
+          docker run --rm --network none \
+            -e BACKEND_UPSTREAM=http://127.0.0.1:48888 \
+            cheesecave-admin:ci sh -ec '
+              nginx -t
+              test -s /usr/share/nginx/html/admin/index.html
+              test -s /usr/share/doc/cheesecave-admin/LICENSE
+              test -s /usr/share/doc/cheesecave-admin/LICENSING.md
+            '
