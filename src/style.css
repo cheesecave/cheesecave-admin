@@ -16,6 +16,8 @@
   line-height: 1.6;
   font-weight: 400;
   color-scheme: light dark;
+  --admin-card-radius: 12px;
+  --admin-card-shadow: var(--el-box-shadow-light);
 }
 
 body {
@@ -44,8 +46,23 @@ body.dark {
   font-size: 14px;
 }
 
-.el-card {
+.el-card,
+html.dark .el-card {
   margin-bottom: 20px;
+  --el-card-border-radius: var(--admin-card-radius);
+  --el-card-bg-color: var(--bg-card);
+  --el-card-border-color: var(--border-default);
+}
+
+/* Match Registration Invitations for every card, including hover/never modes. */
+.el-card,
+.el-card.is-always-shadow,
+.el-card.is-hover-shadow:hover {
+  box-shadow: var(--admin-card-shadow);
+}
+
+.el-loading-mask {
+  border-radius: var(--admin-card-radius);
 }
 
 /* Dark mode support */
@@ -55,4 +72,200 @@ html.dark {
 
 html.dark body {
   background-color: #0a0a0a;
+}
+
+/* One tab treatment for page sections, dialogs and compact selectors. */
+.el-tabs > .el-tabs__content {
+  overflow: visible;
+}
+
+.el-tabs > .el-tabs__header {
+  max-width: 100%;
+  margin-bottom: 20px;
+}
+
+.el-tabs > .el-tabs__header .el-tabs__nav-wrap::after,
+.el-tabs > .el-tabs__header .el-tabs__active-bar {
+  display: none;
+}
+
+.el-tabs > .el-tabs__header .el-tabs__nav,
+.admin-tab-list {
+  display: flex;
+  width: fit-content;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--bg-card);
+}
+
+.admin-tab-list {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.el-tabs.el-tabs--top > .el-tabs__header .el-tabs__item.is-top {
+  padding-inline: 16px;
+}
+
+.el-tabs > .el-tabs__header .el-tabs__item,
+.admin-tab-list > button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.el-tabs > .el-tabs__header .el-tabs__item:hover,
+.admin-tab-list > button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.el-tabs > .el-tabs__header .el-tabs__item.is-active,
+.admin-tab-list > button[aria-selected="true"] {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.el-tabs > .el-tabs__header .el-tabs__item:focus-visible,
+.admin-tab-list > button:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -2px;
+  box-shadow: none;
+}
+
+.el-tabs > .el-tabs__header .el-tabs__item.is-disabled {
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+.el-tabs > .el-tabs__header .el-tabs__nav-prev,
+.el-tabs > .el-tabs__header .el-tabs__nav-next {
+  line-height: 46px;
+}
+
+/* Pagination remains inside the list's card, with room to wrap on mobile. */
+.el-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  width: 100%;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+  background: var(--bg-card);
+  --el-pagination-button-bg-color: var(--bg-card);
+}
+
+.el-pagination .el-pager {
+  display: flex;
+  gap: 6px;
+}
+
+.el-pagination .el-pager li,
+.el-pagination button.btn-prev,
+.el-pagination button.btn-next {
+  min-width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0 6px;
+  border: 1px solid var(--border-default);
+  border-radius: 7px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.el-pagination .el-pager li:hover,
+.el-pagination button:not(:disabled):hover {
+  border-color: var(--el-color-primary-light-5);
+  color: var(--el-color-primary);
+}
+
+.el-pagination .el-pager li.is-active {
+  border-color: var(--el-color-primary-light-7);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.el-pagination button:disabled {
+  background: var(--bg-hover);
+  color: var(--text-tertiary);
+}
+
+.el-pagination .el-pagination__total {
+  margin: 0 auto 0 0;
+  color: var(--text-secondary);
+}
+
+.el-pagination .el-pagination__sizes {
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .el-tabs > .el-tabs__header .el-tabs__item,
+  .el-tabs.el-tabs--top > .el-tabs__header .el-tabs__item.is-top,
+  .admin-tab-list > button {
+    padding-inline: 12px;
+  }
+
+  .el-pagination {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .el-pagination .el-pagination__total {
+    grid-column: 1 / -1;
+    margin: 0;
+    text-align: center;
+  }
+
+  .el-pagination .el-pagination__sizes {
+    grid-column: 1 / -1;
+    justify-self: center;
+    order: 1;
+  }
+
+  .el-pagination .el-pager {
+    grid-column: 1 / -1;
+    justify-content: center;
+    gap: 4px;
+    order: 2;
+  }
+
+  .el-pagination .el-pager li {
+    min-width: 28px;
+    padding: 0 4px;
+  }
+
+  .el-pagination button.btn-prev {
+    justify-self: end;
+    order: 3;
+  }
+
+  .el-pagination button.btn-next {
+    justify-self: start;
+    order: 3;
+  }
 }

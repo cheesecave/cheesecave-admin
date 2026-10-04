@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
@@ -82,7 +83,7 @@ async function loadSources() {
   } catch (error) {
     console.error("Failed to load fallback sources:", error);
     ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to load fallback sources",
+      getApiErrorMessage(error, "Failed to load fallback sources"),
     );
   } finally {
     loading.value = false;
@@ -149,7 +150,7 @@ async function handleSubmit() {
   } catch (error) {
     console.error("Failed to save fallback source:", error);
     ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to save fallback source",
+      getApiErrorMessage(error, "Failed to save fallback source"),
     );
   } finally {
     loading.value = false;
@@ -179,8 +180,7 @@ async function handleDelete(source) {
     if (error !== "cancel") {
       console.error("Failed to delete fallback source:", error);
       ElMessage.error(
-        error.response?.data?.detail?.error ||
-          "Failed to delete fallback source",
+        getApiErrorMessage(error, "Failed to delete fallback source"),
       );
     }
   } finally {
@@ -202,9 +202,7 @@ async function handleToggleEnabled(source) {
     await loadSources();
   } catch (error) {
     console.error("Failed to toggle source:", error);
-    ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to toggle source",
-    );
+    ElMessage.error(getApiErrorMessage(error, "Failed to toggle source"));
   } finally {
     loading.value = false;
   }
@@ -231,9 +229,7 @@ async function handleClearCache() {
   } catch (error) {
     if (error !== "cancel") {
       console.error("Failed to clear cache:", error);
-      ElMessage.error(
-        error.response?.data?.detail?.error || "Failed to clear cache",
-      );
+      ElMessage.error(getApiErrorMessage(error, "Failed to clear cache"));
     }
   } finally {
     loading.value = false;
@@ -435,9 +431,7 @@ async function handleEvictRepo() {
     await loadCacheStats();
   } catch (error) {
     console.error("Failed to evict repo cache:", error);
-    ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to evict repo cache",
-    );
+    ElMessage.error(getApiErrorMessage(error, "Failed to evict repo cache"));
   } finally {
     loading.value = false;
   }
@@ -507,9 +501,7 @@ async function handleEvictUser() {
     await loadCacheStats();
   } catch (error) {
     console.error("Failed to evict user cache:", error);
-    ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to evict user cache",
-    );
+    ElMessage.error(getApiErrorMessage(error, "Failed to evict user cache"));
   } finally {
     loading.value = false;
   }
@@ -645,8 +637,7 @@ async function pushDraftToSystem() {
   } catch (error) {
     console.error("Failed to push draft:", error);
     ElMessage.error(
-      error.response?.data?.detail?.error ||
-        "Failed to push draft to system",
+      getApiErrorMessage(error, "Failed to push draft to system"),
     );
   } finally {
     loading.value = false;
@@ -756,8 +747,9 @@ async function runSimulate() {
     simReport.value = await runFallbackChainSimulate(adminStore.token, payload);
   } catch (error) {
     console.error("simulate probe failed:", error);
-    simError.value =
-      error.response?.data?.detail?.error || error.message || "Simulate failed";
+    simError.value = getApiErrorMessage(error, "Simulate failed", {
+      preferRequestMessage: true,
+    });
     simReport.value = null;
   } finally {
     simRunning.value = false;
@@ -820,8 +812,9 @@ async function runRealRequest() {
     });
   } catch (error) {
     console.error("real request failed:", error);
-    realError.value =
-      error.response?.data?.detail?.error || error.message || "Probe failed";
+    realError.value = getApiErrorMessage(error, "Probe failed", {
+      preferRequestMessage: true,
+    });
     realReport.value = null;
   } finally {
     realRunning.value = false;

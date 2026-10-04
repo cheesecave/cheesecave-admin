@@ -88,7 +88,7 @@ const colorClasses = {
   min-width: 0;
   text-align: center;
   padding: 32px;
-  border-radius: 8px;
+  border-radius: var(--admin-card-radius);
   color: white;
   background: linear-gradient(
     135deg,

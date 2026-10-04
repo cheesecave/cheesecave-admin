@@ -56,6 +56,29 @@ describe("homepage administration", () => {
     return wrapper.findAll("button").find((item) => item.text() === label);
   }
 
+  it("shows nested API errors and keeps the homepage draft available for retry", async () => {
+    mountPage();
+    await flushPromises();
+    await wrapper.get("#homepage-title").setValue("Retain this title");
+    mocks.updateSiteHomepage.mockRejectedValue({
+      response: {
+        status: 422,
+        data: { detail: { error: "The title could not be saved" } },
+      },
+    });
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(wrapper.get('[role="alert"]').text()).toBe(
+      "The title could not be saved",
+    );
+    expect(wrapper.get("#homepage-title").element.value).toBe(
+      "Retain this title",
+    );
+    expect(button("Save").element.disabled).toBe(false);
+    expect(mocks.adminStore.logout).not.toHaveBeenCalled();
+    expect(success).not.toHaveBeenCalled();
+  });
+
   it("loads authenticated settings, previews edits and saves all controls together", async () => {
     mountPage();
     await flushPromises();

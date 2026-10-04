@@ -1,9 +1,8 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
-import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
 import SiteSettingsHeader from "./SiteSettingsHeader.vue";
-import { useAdminStore } from "@/stores/admin";
+import SiteActions from "./SiteActions.vue";
+import { useSiteSettingsRequest } from "./useSiteSettingsRequest.js";
 import { useSiteBrandingStore } from "@/stores/siteBranding";
 import { getGifLoop } from "../../shared/site-branding.js";
 import {
@@ -14,19 +13,22 @@ import {
   resetSiteBrandingAsset,
 } from "@/utils/api";
 
-const router = useRouter();
-const adminStore = useAdminStore();
 const siteBrandingStore = useSiteBrandingStore();
-const draft = reactive({ site_name: "", footer_description: "" });
+const draft = reactive({ site_name: "" });
 const playback = ref(true);
 const fileInputs = {};
 const savedPlayback = computed(() =>
   getGifLoop(siteBrandingStore.branding.header_logo),
 );
-const loaded = ref(false);
-const busy = ref(false);
-const errorMessage = ref("");
-const disabled = computed(() => busy.value || !loaded.value);
+const {
+  loaded,
+  busy,
+  errorMessage,
+  disabled,
+  checkAuth,
+  showError,
+  runRequest,
+} = useSiteSettingsRequest();
 const assets = [
   {
     key: "header_logo",
@@ -45,31 +47,8 @@ const assets = [
 const accept =
   ".svg,.png,.jpg,.jpeg,.webp,.gif,.ico,image/svg+xml,image/png,image/jpeg,image/webp,image/gif,image/x-icon,image/vnd.microsoft.icon";
 
-function checkAuth() {
-  if (adminStore.token) return true;
-  loaded.value = false;
-  router.push("/login");
-  return false;
-}
-
-function showError(error, fallback) {
-  if ([401, 403].includes(error.response?.status)) {
-    loaded.value = false;
-    adminStore.logout();
-    router.push("/login");
-    errorMessage.value = "Invalid admin token. Please login again.";
-  } else {
-    const detail = error.response?.data?.detail;
-    errorMessage.value = Array.isArray(detail)
-      ? detail.map((item) => item.msg || String(item)).join("; ")
-      : String(detail || error.message || fallback);
-  }
-  ElMessage.error(errorMessage.value);
-}
-
 function copyText(branding) {
   draft.site_name = branding.site_name;
-  draft.footer_description = branding.footer_description;
 }
 
 function copyPlayback(asset) {
@@ -77,53 +56,36 @@ function copyPlayback(asset) {
 }
 
 async function loadBranding() {
-  if (busy.value || !checkAuth()) return;
-  busy.value = true;
-  loaded.value = false;
-  errorMessage.value = "";
-  try {
-    siteBrandingStore.apply(await getSiteBranding(adminStore.token));
-    copyText(siteBrandingStore.branding);
-    copyPlayback("header_logo");
-    loaded.value = true;
-  } catch (error) {
-    showError(error, "Failed to load site branding");
-  } finally {
-    busy.value = false;
-  }
+  await runRequest(
+    async (token) => {
+      loaded.value = false;
+      siteBrandingStore.apply(await getSiteBranding(token));
+      copyText(siteBrandingStore.branding);
+      copyPlayback("header_logo");
+      loaded.value = true;
+    },
+    { fallback: "Failed to load site branding" },
+  );
 }
 
 async function saveText() {
   if (disabled.value || !checkAuth()) return;
   const siteName = draft.site_name.trim();
-  if (
-    !siteName ||
-    Array.from(siteName).length > 100 ||
-    Array.from(draft.footer_description).length > 2000
-  ) {
-    showError(
-      new Error(
-        "Enter a site name of 1–100 characters and a footer description of at most 2000 characters.",
-      ),
-    );
+  if (!siteName || Array.from(siteName).length > 100) {
+    showError(new Error("Enter a site name of 1–100 characters."));
     return;
   }
-  busy.value = true;
-  errorMessage.value = "";
-  try {
-    siteBrandingStore.apply(
-      await updateSiteBranding(adminStore.token, {
-        site_name: siteName,
-        footer_description: draft.footer_description,
-      }),
-    );
-    copyText(siteBrandingStore.branding);
-    ElMessage.success("Site name and footer description saved");
-  } catch (error) {
-    showError(error, "Failed to save site branding");
-  } finally {
-    busy.value = false;
-  }
+  await runRequest(
+    async (token) => {
+      siteBrandingStore.apply(
+        await updateSiteBranding(token, {
+          site_name: siteName,
+        }),
+      );
+      copyText(siteBrandingStore.branding);
+    },
+    { fallback: "Failed to save site branding", success: "Site name saved" },
+  );
 }
 
 function chooseAsset(asset) {
@@ -145,10 +107,10 @@ async function uploadAsset(asset, event) {
     return;
   }
   await mutateAsset(
-    () =>
+    (token) =>
       asset === "header_logo"
-        ? uploadSiteBrandingAsset(adminStore.token, asset, file, playback.value)
-        : uploadSiteBrandingAsset(adminStore.token, asset, file),
+        ? uploadSiteBrandingAsset(token, asset, file, playback.value)
+        : uploadSiteBrandingAsset(token, asset, file),
     "Image uploaded",
     asset,
   );
@@ -157,7 +119,7 @@ async function uploadAsset(asset, event) {
 async function resetAsset(asset) {
   if (disabled.value || !checkAuth()) return;
   await mutateAsset(
-    () => resetSiteBrandingAsset(adminStore.token, asset),
+    (token) => resetSiteBrandingAsset(token, asset),
     "Default image restored",
     asset,
   );
@@ -166,49 +128,44 @@ async function resetAsset(asset) {
 async function savePlayback() {
   if (disabled.value || savedPlayback.value === null || !checkAuth()) return;
   await mutateAsset(
-    () =>
-      updateSiteBrandingAssetAnimation(
-        adminStore.token,
-        "header_logo",
-        playback.value,
-      ),
+    (token) =>
+      updateSiteBrandingAssetAnimation(token, "header_logo", playback.value),
     "GIF playback saved",
     "header_logo",
   );
 }
 
 async function mutateAsset(action, message, asset) {
-  busy.value = true;
-  errorMessage.value = "";
-  try {
-    siteBrandingStore.apply(await action());
-    copyPlayback(asset);
-    ElMessage.success(message);
-  } catch (error) {
-    showError(error, "Failed to update image");
-  } finally {
-    busy.value = false;
-  }
+  await runRequest(
+    async (token) => {
+      siteBrandingStore.apply(await action(token));
+      copyPlayback(asset);
+    },
+    { fallback: "Failed to update image", success: message },
+  );
 }
 
 onMounted(loadBranding);
 </script>
 
 <template>
-  <section class="branding-settings" aria-label="Site branding settings">
+  <section
+    class="site-settings branding-settings"
+    aria-label="Site branding settings"
+  >
     <SiteSettingsHeader
       title="Branding"
-      subtitle="Customize the site name, header logo, favicon and footer description."
+      subtitle="Customize the site name, header logo and favicon. Edit the footer description in the Footer tab."
     >
       <template #actions>
-        <el-button :disabled="busy" @click="loadBranding">Reload</el-button>
+        <SiteActions :busy="busy" @reload="loadBranding" />
       </template>
     </SiteSettingsHeader>
 
-    <p v-if="errorMessage" class="branding-error" role="alert">
+    <p v-if="errorMessage" class="site-settings-error" role="alert">
       {{ errorMessage }}
     </p>
-    <p v-if="!loaded" class="branding-help" role="status">
+    <p v-if="!loaded" class="site-settings-help" role="status">
       {{
         busy
           ? "Loading site branding…"
@@ -218,10 +175,13 @@ onMounted(loadBranding);
 
     <el-card class="branding-card">
       <template #header
-        ><h3 class="text-lg font-semibold">Site name and footer</h3></template
+        ><h3 class="text-lg font-semibold">Site name</h3></template
       >
-      <form @submit.prevent="saveText">
-        <fieldset :disabled="disabled" class="branding-fields">
+      <form id="site-name-form" @submit.prevent="saveText">
+        <fieldset
+          :disabled="disabled"
+          class="site-settings-fields branding-fields"
+        >
           <label for="site-name">Site name</label>
           <input
             id="site-name"
@@ -229,25 +189,14 @@ onMounted(loadBranding);
             type="text"
             required
           />
-          <label for="footer-description">Footer description</label>
-          <textarea
-            id="footer-description"
-            v-model="draft.footer_description"
-            rows="4"
+          <SiteActions
+            :show-reload="false"
+            show-save
+            :busy="busy"
+            :disabled="disabled"
+            form-id="site-name-form"
+            save-label="Save site name"
           />
-          <p class="branding-help">
-            Plain text, up to 2000 characters. Leave blank to hide the
-            description. Other CheeseCave introduction text is unchanged.
-          </p>
-          <div>
-            <el-button
-              type="primary"
-              native-type="submit"
-              :disabled="disabled"
-              aria-label="Save site name and footer"
-              >Save</el-button
-            >
-          </div>
         </fieldset>
       </form>
     </el-card>
@@ -257,7 +206,7 @@ onMounted(loadBranding);
         <template #header
           ><h3 class="text-lg font-semibold">{{ asset.label }}</h3></template
         >
-        <p class="branding-help">{{ asset.description }}</p>
+        <p class="site-settings-help">{{ asset.description }}</p>
         <div
           class="branding-preview"
           :class="{ 'favicon-preview': asset.key === 'favicon' }"
@@ -267,7 +216,7 @@ onMounted(loadBranding);
             :alt="`${asset.label} preview`"
           />
         </div>
-        <p class="branding-help">
+        <p class="site-settings-help">
           {{
             siteBrandingStore.branding[asset.key]
               ? "Custom image"
@@ -289,7 +238,7 @@ onMounted(loadBranding);
           @click="chooseAsset(asset.key)"
           >Upload</el-button
         >
-        <p class="branding-help">
+        <p class="site-settings-help">
           SVG, PNG, JPEG, WebP, GIF or ICO. Maximum 2 MiB. SVG must be
           self-contained and static.
           {{
@@ -311,11 +260,11 @@ onMounted(loadBranding);
             <option :value="true">Loop forever</option>
             <option :value="false">Play once</option>
           </select>
-          <p class="branding-help">
+          <p class="site-settings-help">
             Select before uploading a GIF, or save playback for the current GIF.
           </p>
         </template>
-        <div class="branding-actions">
+        <div class="site-settings-inline-actions">
           <el-button
             v-if="asset.key === 'header_logo' && savedPlayback !== null"
             type="primary"
@@ -334,7 +283,7 @@ onMounted(loadBranding);
         </div>
       </el-card>
     </div>
-    <p class="branding-help">
+    <p class="site-settings-help">
       Saved branding is cached in visitors' browsers. If the backend is
       unavailable, the last saved branding or the packaged defaults remain
       visible.
@@ -342,63 +291,15 @@ onMounted(loadBranding);
   </section>
 </template>
 
+<style scoped src="./site-settings.css"></style>
 <style scoped>
-.branding-settings {
-  color: var(--text-primary);
-}
 .branding-card {
   margin-bottom: 24px;
-}
-.branding-help {
-  color: var(--text-secondary);
-  margin: 8px 0 16px;
-  line-height: 1.5;
-}
-.branding-error {
-  padding: 12px;
-  margin-bottom: 16px;
-  color: var(--color-danger, #dc2626);
-  border: 1px solid currentColor;
-  border-radius: 8px;
 }
 .branding-fields {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border: 0;
-  padding: 0;
-  margin: 0;
-  min-width: 0;
-}
-.branding-fields label,
-.branding-upload-label {
-  font-weight: 600;
-}
-.branding-fields input,
-.branding-fields textarea,
-.branding-playback {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid var(--border-default);
-  border-radius: 6px;
-  padding: 10px 12px;
-  background: var(--bg-base);
-  color: var(--text-primary);
-  font: inherit;
-}
-.branding-fields textarea {
-  resize: vertical;
-}
-.branding-fields input:focus-visible,
-.branding-fields textarea:focus-visible,
-.branding-playback:focus-visible {
-  outline: 2px solid var(--color-info);
-  outline-offset: 2px;
-}
-.branding-fields:disabled,
-input:disabled,
-select:disabled {
-  opacity: 0.6;
 }
 .branding-assets {
   display: grid;
@@ -425,16 +326,9 @@ select:disabled {
   max-height: 64px;
 }
 .branding-upload-label {
+  font-weight: 600;
   display: block;
   margin: 16px 0 8px;
-}
-.branding-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.branding-actions :deep(.el-button) {
-  margin-left: 0;
 }
 @media (max-width: 720px) {
   .branding-assets {

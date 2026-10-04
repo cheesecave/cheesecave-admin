@@ -150,7 +150,7 @@ function relative(iso) {
 <template>
   <div class="overview" data-testid="task-overview">
     <div class="toolbar">
-      <div class="segmented" role="tablist" data-testid="task-window">
+      <div class="admin-tab-list" role="tablist" data-testid="task-window">
         <button
           v-for="option in WINDOWS"
           :key="option"
@@ -342,34 +342,10 @@ function relative(iso) {
 
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-}
-
-.segmented {
-  display: inline-flex;
-  padding: 2px;
-  border-radius: 10px;
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-lighter);
-}
-
-.segmented button {
-  padding: 4px 14px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.segmented button.active {
-  background: var(--el-bg-color);
-  color: var(--el-text-color-primary);
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
 }
 
 .generated,
@@ -433,9 +409,10 @@ function relative(iso) {
   align-items: flex-start;
   gap: 4px;
   padding: 12px 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
-  background: var(--el-bg-color);
+  border: 1px solid var(--border-default);
+  border-radius: var(--admin-card-radius);
+  box-shadow: var(--admin-card-shadow);
+  background: var(--bg-card);
   text-align: left;
   font: inherit;
 }
@@ -489,9 +466,10 @@ function relative(iso) {
 
 .panel {
   padding: 14px 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
-  background: var(--el-bg-color);
+  border: 1px solid var(--border-default);
+  border-radius: var(--admin-card-radius);
+  box-shadow: var(--admin-card-shadow);
+  background: var(--bg-card);
   min-width: 0;
 }
 

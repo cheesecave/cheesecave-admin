@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
@@ -93,9 +94,7 @@ async function loadCommits() {
       adminStore.logout();
       router.push("/login");
     } else {
-      ElMessage.error(
-        error.response?.data?.detail?.error || "Failed to load commits",
-      );
+      ElMessage.error(getApiErrorMessage(error, "Failed to load commits"));
     }
   } finally {
     loading.value = false;
@@ -263,7 +262,8 @@ onMounted(() => {
             v-model:current-page="currentPage"
             v-model:page-size="pageSize"
             :page-sizes="[10, 20, 50, 100]"
-            layout="sizes, prev, pager, next"
+            :pager-count="5"
+            layout="total, sizes, prev, pager, next"
             :total="commits.length"
             @current-change="loadCommits"
             @size-change="loadCommits"
@@ -278,7 +278,6 @@ onMounted(() => {
 :deep(.el-card) {
   background-color: var(--bg-card);
   border-color: var(--border-default);
-  border-radius: 12px;
 }
 
 :deep(.el-table) {

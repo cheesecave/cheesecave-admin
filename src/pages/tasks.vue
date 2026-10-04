@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
@@ -93,7 +94,7 @@ function handleError(error, fallback) {
     router.push("/login");
     return;
   }
-  ElMessage.error(error.response?.data?.detail?.error || fallback);
+  ElMessage.error(getApiErrorMessage(error, fallback));
 }
 
 async function loadTasks() {
@@ -591,6 +592,7 @@ onBeforeUnmount(stopTimer);
                 :current-page="currentPage"
                 :page-size="pageSize"
                 :total="total"
+                :pager-count="5"
                 layout="total, prev, pager, next"
                 data-testid="tasks-pagination"
                 @current-change="handlePageChange"
@@ -677,9 +679,10 @@ onBeforeUnmount(stopTimer);
   align-items: flex-start;
   gap: 4px;
   padding: 14px 16px;
-  border: 1px solid var(--el-border-color);
-  border-radius: 10px;
-  background: var(--el-bg-color);
+  border: 1px solid var(--border-default);
+  border-radius: var(--admin-card-radius);
+  box-shadow: var(--admin-card-shadow);
+  background: var(--bg-card);
   cursor: pointer;
   text-align: left;
 }
@@ -719,7 +722,9 @@ onBeforeUnmount(stopTimer);
 .status-card.active {
   background: var(--status-tint);
   border-color: var(--status-color);
-  box-shadow: 0 0 0 1px var(--status-color);
+  box-shadow:
+    var(--admin-card-shadow),
+    0 0 0 1px var(--status-color);
 }
 
 .status-dot {

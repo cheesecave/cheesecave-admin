@@ -1,5 +1,8 @@
 import { flushPromises, mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createPinia } from "pinia";
+import { useSiteBrandingStore } from "@/stores/siteBranding";
+import { DEFAULT_BRANDING } from "../../src/shared/site-branding.js";
 
 import { ElementPlusStubs } from "../helpers/vue";
 
@@ -28,17 +31,62 @@ vi.mock("element-plus", async () => {
 import LoginPage from "@/pages/login.vue";
 
 describe("admin login page", () => {
+  let pinia;
+  const wrappers = [];
   beforeEach(() => {
     vi.clearAllMocks();
+    pinia = createPinia();
+  });
+  afterEach(() => {
+    wrappers.splice(0).forEach((wrapper) => wrapper.unmount());
+    pinia._s.forEach((store) => store.$dispose());
   });
 
   function mountPage() {
-    return mount(LoginPage, {
+    const wrapper = mount(LoginPage, {
       global: {
+        plugins: [pinia],
         stubs: ElementPlusStubs,
       },
     });
+    wrappers.push(wrapper);
+    return wrapper;
   }
+
+  it("follows site branding updates and recovers from a failed logo with the packaged default", async () => {
+    const store = useSiteBrandingStore(pinia);
+    const logo = (fill) =>
+      `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" fill="${fill}"/></svg>`)}`;
+    const firstLogo = logo("red");
+    store.apply({
+      ...DEFAULT_BRANDING,
+      site_name: "DeepGHS Hub",
+      header_logo: firstLogo,
+    });
+    const wrapper = mountPage();
+    expect(wrapper.get("h1").text()).toBe("DeepGHS Hub Admin");
+    expect(wrapper.get("img").attributes("src")).toBe(firstLogo);
+    expect(wrapper.get("img").attributes("alt")).toBe("DeepGHS Hub logo");
+    await wrapper.get("img").trigger("error");
+    expect(wrapper.get("img").attributes("src")).toBe(
+      "/admin/images/logo-square.svg",
+    );
+
+    const nextLogo = logo("blue");
+    store.apply({
+      ...DEFAULT_BRANDING,
+      site_name: "Updated Hub",
+      header_logo: nextLogo,
+    });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get("img").attributes("src")).toBe(nextLogo);
+    expect(wrapper.get("h1").text()).toBe("Updated Hub Admin");
+    store.apply(DEFAULT_BRANDING);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get("img").attributes("src")).toBe(
+      "/admin/images/logo-square.svg",
+    );
+  });
 
   it("rejects empty login attempts before calling the store", async () => {
     const wrapper = mountPage();

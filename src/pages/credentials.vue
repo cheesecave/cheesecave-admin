@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
@@ -71,7 +72,7 @@ function handleApiError(error, fallback) {
     return;
   }
   showError(
-    error.response?.data?.detail?.error || error.message || fallback,
+    getApiErrorMessage(error, fallback, { preferRequestMessage: true }),
   );
 }
 
@@ -101,8 +102,7 @@ async function loadTokens() {
     const data = await listAdminTokens(adminStore.token, {
       user: userFilter.value || undefined,
       unusedForDays:
-        unusedForDaysFilter.value === null ||
-        unusedForDaysFilter.value === ""
+        unusedForDaysFilter.value === null || unusedForDaysFilter.value === ""
           ? undefined
           : Number(unusedForDaysFilter.value),
       limit: PAGE_SIZE,
@@ -124,8 +124,7 @@ async function loadSshKeys() {
     const data = await listAdminSshKeys(adminStore.token, {
       user: userFilter.value || undefined,
       unusedForDays:
-        unusedForDaysFilter.value === null ||
-        unusedForDaysFilter.value === ""
+        unusedForDaysFilter.value === null || unusedForDaysFilter.value === ""
           ? undefined
           : Number(unusedForDaysFilter.value),
       limit: PAGE_SIZE,
@@ -153,12 +152,7 @@ watch(activeTab, () => {
   loadActiveTab();
 });
 
-async function confirmAndRevoke({
-  title,
-  message,
-  perform,
-  reload,
-}) {
+async function confirmAndRevoke({ title, message, perform, reload }) {
   try {
     await confirmDialog(title, message, { confirmText: "Revoke" });
   } catch {
@@ -203,7 +197,8 @@ function revokeSshKey(row) {
 async function submitBulkRevoke() {
   const body = {};
   if (bulkRevokeForm.value.user) body.user = bulkRevokeForm.value.user;
-  if (bulkRevokeForm.value.beforeTs) body.before_ts = bulkRevokeForm.value.beforeTs;
+  if (bulkRevokeForm.value.beforeTs)
+    body.before_ts = bulkRevokeForm.value.beforeTs;
   if (!body.user && !body.before_ts) {
     showWarning("Provide at least one filter (user or before_ts).");
     return;
@@ -296,151 +291,203 @@ onMounted(() => {
         </div>
       </el-card>
 
-      <el-tabs v-model="activeTab" data-testid="credentials-tabs">
-        <el-tab-pane label="Sessions" name="sessions">
-          <el-table
-            v-loading="loading"
-            :data="sessions"
-            stripe
-            data-testid="credentials-sessions-table"
-          >
-            <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column prop="username" label="User" width="160" />
-            <el-table-column label="Created" width="200">
-              <template #default="{ row }">
-                {{ formatDate(row.created_at) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="Expires" width="200">
-              <template #default="{ row }">
-                {{ formatDate(row.expires_at) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="Status" width="120">
-              <template #default="{ row }">
-                <el-tag :type="row.expired ? 'info' : 'success'">
-                  {{ row.expired ? "Expired" : "Active" }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="Actions">
-              <template #default="{ row }">
-                <el-button
-                  type="danger"
-                  size="small"
-                  @click="revokeSession(row)"
-                  data-testid="credentials-revoke-session"
-                >
-                  Revoke
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-pagination
-            v-if="sessionsTotal > PAGE_SIZE"
-            v-model:current-page="sessionsPage"
-            :page-size="PAGE_SIZE"
-            :total="sessionsTotal"
-            layout="prev, pager, next, total"
-            class="mt-4"
-            @current-change="loadSessions"
-          />
-        </el-tab-pane>
+      <el-card shadow="never" class="credentials-list-card">
+        <el-tabs v-model="activeTab" data-testid="credentials-tabs">
+          <el-tab-pane label="Sessions" name="sessions">
+            <el-table
+              v-loading="loading"
+              :data="sessions"
+              stripe
+              data-testid="credentials-sessions-table"
+            >
+              <el-table-column prop="id" label="ID" width="80" />
+              <el-table-column
+                prop="username"
+                label="User"
+                min-width="160"
+                show-overflow-tooltip
+              />
+              <el-table-column label="Created" width="200">
+                <template #default="{ row }">
+                  {{ formatDate(row.created_at) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="Expires" width="200">
+                <template #default="{ row }">
+                  {{ formatDate(row.expires_at) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="Status" width="120">
+                <template #default="{ row }">
+                  <el-tag :type="row.expired ? 'info' : 'success'">
+                    {{ row.expired ? "Expired" : "Active" }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column
+                label="Actions"
+                fixed="right"
+                width="140"
+                align="right"
+                header-align="right"
+              >
+                <template #default="{ row }">
+                  <el-button
+                    type="danger"
+                    size="small"
+                    @click="revokeSession(row)"
+                    data-testid="credentials-revoke-session"
+                  >
+                    Revoke
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-pagination
+              v-if="sessionsTotal > PAGE_SIZE"
+              v-model:current-page="sessionsPage"
+              :page-size="PAGE_SIZE"
+              :total="sessionsTotal"
+              :pager-count="5"
+              layout="total, prev, pager, next"
+              class="mt-4"
+              @current-change="loadSessions"
+            />
+          </el-tab-pane>
 
-        <el-tab-pane label="API Tokens" name="tokens">
-          <el-table
-            v-loading="loading"
-            :data="tokens"
-            stripe
-            data-testid="credentials-tokens-table"
-          >
-            <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column prop="username" label="User" width="160" />
-            <el-table-column prop="name" label="Name" />
-            <el-table-column label="Created" width="200">
-              <template #default="{ row }">
-                {{ formatDate(row.created_at) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="Last used" width="200">
-              <template #default="{ row }">
-                {{ formatDate(row.last_used) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="Actions" width="140">
-              <template #default="{ row }">
-                <el-button
-                  type="danger"
-                  size="small"
-                  @click="revokeToken(row)"
-                  data-testid="credentials-revoke-token"
-                >
-                  Revoke
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-pagination
-            v-if="tokensTotal > PAGE_SIZE"
-            v-model:current-page="tokensPage"
-            :page-size="PAGE_SIZE"
-            :total="tokensTotal"
-            layout="prev, pager, next, total"
-            class="mt-4"
-            @current-change="loadTokens"
-          />
-        </el-tab-pane>
+          <el-tab-pane label="API Tokens" name="tokens">
+            <el-table
+              v-loading="loading"
+              :data="tokens"
+              stripe
+              data-testid="credentials-tokens-table"
+            >
+              <el-table-column prop="id" label="ID" width="80" />
+              <el-table-column
+                prop="username"
+                label="User"
+                min-width="160"
+                show-overflow-tooltip
+              />
+              <el-table-column
+                prop="name"
+                label="Name"
+                min-width="200"
+                show-overflow-tooltip
+              />
+              <el-table-column label="Created" width="200">
+                <template #default="{ row }">
+                  {{ formatDate(row.created_at) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="Last used" width="200">
+                <template #default="{ row }">
+                  {{ formatDate(row.last_used) }}
+                </template>
+              </el-table-column>
+              <el-table-column
+                label="Actions"
+                fixed="right"
+                width="140"
+                align="right"
+                header-align="right"
+              >
+                <template #default="{ row }">
+                  <el-button
+                    type="danger"
+                    size="small"
+                    @click="revokeToken(row)"
+                    data-testid="credentials-revoke-token"
+                  >
+                    Revoke
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-pagination
+              v-if="tokensTotal > PAGE_SIZE"
+              v-model:current-page="tokensPage"
+              :page-size="PAGE_SIZE"
+              :total="tokensTotal"
+              :pager-count="5"
+              layout="total, prev, pager, next"
+              class="mt-4"
+              @current-change="loadTokens"
+            />
+          </el-tab-pane>
 
-        <el-tab-pane label="SSH Keys" name="ssh-keys">
-          <el-table
-            v-loading="loading"
-            :data="sshKeys"
-            stripe
-            data-testid="credentials-ssh-keys-table"
-          >
-            <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column prop="username" label="User" width="160" />
-            <el-table-column prop="title" label="Title" />
-            <el-table-column prop="key_type" label="Type" width="140" />
-            <el-table-column label="Fingerprint">
-              <template #default="{ row }">
-                <code class="fingerprint">{{ row.fingerprint }}</code>
-              </template>
-            </el-table-column>
-            <el-table-column label="Created" width="200">
-              <template #default="{ row }">
-                {{ formatDate(row.created_at) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="Last used" width="200">
-              <template #default="{ row }">
-                {{ formatDate(row.last_used) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="Actions" width="140">
-              <template #default="{ row }">
-                <el-button
-                  type="danger"
-                  size="small"
-                  @click="revokeSshKey(row)"
-                  data-testid="credentials-revoke-ssh-key"
-                >
-                  Revoke
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-pagination
-            v-if="sshKeysTotal > PAGE_SIZE"
-            v-model:current-page="sshKeysPage"
-            :page-size="PAGE_SIZE"
-            :total="sshKeysTotal"
-            layout="prev, pager, next, total"
-            class="mt-4"
-            @current-change="loadSshKeys"
-          />
-        </el-tab-pane>
-      </el-tabs>
+          <el-tab-pane label="SSH Keys" name="ssh-keys">
+            <el-table
+              v-loading="loading"
+              :data="sshKeys"
+              stripe
+              data-testid="credentials-ssh-keys-table"
+            >
+              <el-table-column prop="id" label="ID" width="80" />
+              <el-table-column
+                prop="username"
+                label="User"
+                min-width="160"
+                show-overflow-tooltip
+              />
+              <el-table-column
+                prop="title"
+                label="Title"
+                min-width="200"
+                show-overflow-tooltip
+              />
+              <el-table-column prop="key_type" label="Type" width="140" />
+              <el-table-column
+                label="Fingerprint"
+                min-width="240"
+                show-overflow-tooltip
+              >
+                <template #default="{ row }">
+                  <code class="fingerprint">{{ row.fingerprint }}</code>
+                </template>
+              </el-table-column>
+              <el-table-column label="Created" width="200">
+                <template #default="{ row }">
+                  {{ formatDate(row.created_at) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="Last used" width="200">
+                <template #default="{ row }">
+                  {{ formatDate(row.last_used) }}
+                </template>
+              </el-table-column>
+              <el-table-column
+                label="Actions"
+                fixed="right"
+                width="140"
+                align="right"
+                header-align="right"
+              >
+                <template #default="{ row }">
+                  <el-button
+                    type="danger"
+                    size="small"
+                    @click="revokeSshKey(row)"
+                    data-testid="credentials-revoke-ssh-key"
+                  >
+                    Revoke
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-pagination
+              v-if="sshKeysTotal > PAGE_SIZE"
+              v-model:current-page="sshKeysPage"
+              :page-size="PAGE_SIZE"
+              :total="sshKeysTotal"
+              :pager-count="5"
+              layout="total, prev, pager, next"
+              class="mt-4"
+              @current-change="loadSshKeys"
+            />
+          </el-tab-pane>
+        </el-tabs>
+      </el-card>
 
       <el-dialog
         v-model="bulkRevokeOpen"
@@ -455,7 +502,9 @@ onMounted(() => {
               data-testid="credentials-bulk-user"
             />
           </el-form-item>
-          <el-form-item label="Created strictly before (ISO timestamp, optional)">
+          <el-form-item
+            label="Created strictly before (ISO timestamp, optional)"
+          >
             <el-input
               v-model="bulkRevokeForm.beforeTs"
               placeholder="e.g. 2026-01-01T00:00:00+00:00"
@@ -483,9 +532,13 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.credentials-list-card {
+  min-width: 0;
+  overflow: hidden;
+}
 .fingerprint {
   font-size: 12px;
-  word-break: break-all;
+  white-space: nowrap;
   color: var(--el-text-color-secondary);
 }
 </style>

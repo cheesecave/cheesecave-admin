@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
@@ -82,19 +83,17 @@ async function loadHealth({ silent = false } = {}) {
     report.value = data;
     lastError.value = null;
   } catch (error) {
-    if (
-      error.response?.status === 401 ||
-      error.response?.status === 403
-    ) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
       ElMessage.error("Invalid admin token. Please login again.");
       adminStore.logout();
       router.push("/login");
       return;
     }
-    const detail =
-      error.response?.data?.detail?.error ||
-      error.message ||
-      "Failed to load dependency health";
+    const detail = getApiErrorMessage(
+      error,
+      "Failed to load dependency health",
+      { preferRequestMessage: true },
+    );
     lastError.value = detail;
     if (!silent) {
       ElMessage.error(detail);
@@ -208,14 +207,28 @@ onBeforeUnmount(() => {
             {{ statusLabel(overallStatus) }}
           </el-tag>
           <span class="text-gray-500 dark:text-gray-400 text-sm">
-            checked at {{ formatTimestamp(report.checked_at_ms) }} · probes
-            ran in {{ formatLatency(report.elapsed_ms) }} · per-probe timeout
+            checked at {{ formatTimestamp(report.checked_at_ms) }} · probes ran
+            in {{ formatLatency(report.elapsed_ms) }} · per-probe timeout
             {{ report.timeout_seconds }} s
           </span>
         </div>
       </el-card>
 
-      <div v-loading="loading" class="cards-grid" data-testid="health-grid">
+      <el-card
+        v-if="loading && !report"
+        v-loading="loading"
+        class="health-loading"
+        data-testid="health-loading"
+        aria-label="Loading dependency health"
+        aria-busy="true"
+      />
+      <div
+        v-else
+        v-loading="loading"
+        class="cards-grid"
+        data-testid="health-grid"
+        :aria-busy="loading"
+      >
         <el-card
           v-for="dep in dependencies"
           :key="dep.name"
@@ -236,7 +249,9 @@ onBeforeUnmount(() => {
           <ul class="dep-meta">
             <li>
               <span class="meta-label">Latency</span>
-              <span class="meta-value">{{ formatLatency(dep.latency_ms) }}</span>
+              <span class="meta-value">{{
+                formatLatency(dep.latency_ms)
+              }}</span>
             </li>
             <li>
               <span class="meta-label">Version</span>
@@ -273,7 +288,9 @@ onBeforeUnmount(() => {
               </span>
             </li>
             <li
-              v-if="dep.compatibility && dep.compatibility.status !== 'supported'"
+              v-if="
+                dep.compatibility && dep.compatibility.status !== 'supported'
+              "
             >
               <span class="meta-label">Note</span>
               <span class="meta-note">{{ dep.compatibility.message }}</span>
@@ -301,13 +318,17 @@ onBeforeUnmount(() => {
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 16px;
   min-height: 120px;
 }
 
-.dep-card {
-  border-radius: 10px;
+.health-loading {
+  min-height: 120px;
+}
+
+.health-loading > :deep(.el-loading-mask) {
+  background: var(--bg-card);
 }
 
 .dep-meta {

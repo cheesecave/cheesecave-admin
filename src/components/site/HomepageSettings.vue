@@ -1,9 +1,8 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
-import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
 import SiteSettingsHeader from "./SiteSettingsHeader.vue";
-import { useAdminStore } from "@/stores/admin";
+import SiteActions from "./SiteActions.vue";
+import { useSiteSettingsRequest } from "./useSiteSettingsRequest.js";
 import { getSiteHomepage, updateSiteHomepage } from "@/utils/api";
 import HomepageHero from "../../shared/components/HomepageHero.vue";
 import {
@@ -12,14 +11,17 @@ import {
   normalizeHomepage,
 } from "../../shared/site-homepage.js";
 
-const router = useRouter();
-const adminStore = useAdminStore();
 const draft = reactive({ ...DEFAULT_HOMEPAGE });
 const saved = ref(null);
-const loaded = ref(false);
-const busy = ref(false);
-const errorMessage = ref("");
-const disabled = computed(() => busy.value || !loaded.value);
+const {
+  loaded,
+  busy,
+  errorMessage,
+  disabled,
+  checkAuth,
+  showError,
+  runRequest,
+} = useSiteSettingsRequest();
 const hasChanges = computed(
   () => JSON.stringify(draft) !== JSON.stringify(saved.value),
 );
@@ -38,28 +40,6 @@ const actions = [
   { key: "secondary", label: "Secondary button" },
 ];
 
-function checkAuth() {
-  if (adminStore.token) return true;
-  loaded.value = false;
-  router.push("/login");
-  return false;
-}
-
-function showError(error, fallback) {
-  if ([401, 403].includes(error.response?.status)) {
-    loaded.value = false;
-    adminStore.logout();
-    router.push("/login");
-    errorMessage.value = "Invalid admin token. Please login again.";
-  } else {
-    const detail = error.response?.data?.detail;
-    errorMessage.value = Array.isArray(detail)
-      ? detail.map((item) => item.msg || String(item)).join("; ")
-      : String(detail || error.message || fallback);
-  }
-  ElMessage.error(errorMessage.value);
-}
-
 function applySaved(homepage) {
   const config = normalizeHomepage(homepage);
   if (!config)
@@ -69,18 +49,14 @@ function applySaved(homepage) {
 }
 
 async function loadHomepage() {
-  if (busy.value || !checkAuth()) return;
-  busy.value = true;
-  loaded.value = false;
-  errorMessage.value = "";
-  try {
-    applySaved(await getSiteHomepage(adminStore.token));
-    loaded.value = true;
-  } catch (error) {
-    showError(error, "Failed to load homepage settings");
-  } finally {
-    busy.value = false;
-  }
+  await runRequest(
+    async (token) => {
+      loaded.value = false;
+      applySaved(await getSiteHomepage(token));
+      loaded.value = true;
+    },
+    { fallback: "Failed to load homepage settings" },
+  );
 }
 
 function validateDraft() {
@@ -115,21 +91,20 @@ async function saveHomepage() {
     showError(new Error(error));
     return;
   }
-  busy.value = true;
-  errorMessage.value = "";
-  try {
-    applySaved(
-      await updateSiteHomepage(adminStore.token, {
-        ...draft,
-        title: draft.title.trim(),
-      }),
-    );
-    ElMessage.success("Homepage settings saved");
-  } catch (error) {
-    showError(error, "Failed to save homepage settings");
-  } finally {
-    busy.value = false;
-  }
+  await runRequest(
+    async (token) => {
+      applySaved(
+        await updateSiteHomepage(token, {
+          ...draft,
+          title: draft.title.trim(),
+        }),
+      );
+    },
+    {
+      fallback: "Failed to save homepage settings",
+      success: "Homepage settings saved",
+    },
+  );
 }
 
 function restoreDefaults() {
@@ -142,32 +117,30 @@ onMounted(loadHomepage);
 </script>
 
 <template>
-  <section class="homepage-settings">
+  <section class="site-settings homepage-settings">
     <SiteSettingsHeader
       title="Homepage"
       subtitle="Create a welcoming homepage for visitors. Signed-in users see their personal workspace."
     >
       <template #actions>
-        <div class="save-actions" data-testid="homepage-actions">
-          <el-button :disabled="busy" @click="loadHomepage">Reload</el-button>
-          <el-button type="danger" :disabled="disabled" @click="restoreDefaults"
-            >Restore</el-button
-          ><el-button
-            type="primary"
-            native-type="submit"
-            form="homepage-settings-form"
-            :disabled="disabled || !hasChanges"
-            :loading="busy"
-            >Save</el-button
-          >
-        </div>
+        <SiteActions
+          data-testid="homepage-actions"
+          :busy="busy"
+          :disabled="disabled"
+          :has-changes="hasChanges"
+          show-restore
+          show-save
+          form-id="homepage-settings-form"
+          @reload="loadHomepage"
+          @restore="restoreDefaults"
+        />
       </template>
     </SiteSettingsHeader>
 
-    <p v-if="errorMessage" class="homepage-error" role="alert">
+    <p v-if="errorMessage" class="site-settings-error" role="alert">
       {{ errorMessage }}
     </p>
-    <p v-if="!loaded" class="homepage-help" role="status">
+    <p v-if="!loaded" class="site-settings-help" role="status">
       {{
         busy
           ? "Loading homepage settings…"
@@ -176,7 +149,7 @@ onMounted(loadHomepage);
     </p>
 
     <form id="homepage-settings-form" @submit.prevent="saveHomepage">
-      <fieldset :disabled="disabled" class="homepage-fields">
+      <fieldset :disabled="disabled" class="site-settings-fields">
         <div class="settings-grid" data-testid="homepage-settings">
           <el-card class="settings-card">
             <template #header><h2>Welcome card</h2></template>
@@ -191,7 +164,11 @@ onMounted(loadHomepage);
                 type="checkbox"
                 role="switch"
             /></label>
-            <div v-for="field in textFields" :key="field.key" class="field">
+            <div
+              v-for="field in textFields"
+              :key="field.key"
+              class="site-settings-field"
+            >
               <label :for="`homepage-${field.key}`">{{ field.label }}</label>
               <textarea
                 v-if="field.multiline"
@@ -210,11 +187,11 @@ onMounted(loadHomepage);
                 :required="field.required"
                 :placeholder="field.placeholder"
               />
-              <p v-if="field.multiline" class="homepage-help">
+              <p v-if="field.multiline" class="site-settings-help">
                 Press Enter, or type \n / \r\n to start a new line.
               </p>
             </div>
-            <div class="field">
+            <div class="site-settings-field">
               <label for="homepage-description">Description</label
               ><textarea
                 id="homepage-description"
@@ -222,9 +199,11 @@ onMounted(loadHomepage);
                 rows="4"
                 maxlength="2000"
               />
-              <p class="homepage-help">Plain text, up to 2000 characters.</p>
+              <p class="site-settings-help">
+                Plain text, up to 2000 characters.
+              </p>
             </div>
-            <div class="field">
+            <div class="site-settings-field">
               <label for="homepage-illustration">Illustration</label
               ><select id="homepage-illustration" v-model="draft.illustration">
                 <option value="mouse-cheese">Mouse and cheese</option>
@@ -252,7 +231,7 @@ onMounted(loadHomepage);
               class="action-fields"
             >
               <h3>{{ action.label }}</h3>
-              <div class="field">
+              <div class="site-settings-field">
                 <label :for="`homepage-${action.key}-label`">Label</label
                 ><input
                   :id="`homepage-${action.key}-label`"
@@ -261,7 +240,7 @@ onMounted(loadHomepage);
                   maxlength="80"
                 />
               </div>
-              <div class="field">
+              <div class="site-settings-field">
                 <label :for="`homepage-${action.key}-url`">Link</label
                 ><input
                   :id="`homepage-${action.key}-url`"
@@ -272,7 +251,7 @@ onMounted(loadHomepage);
                 />
               </div>
             </div>
-            <p class="homepage-help">
+            <p class="site-settings-help">
               Use a site path beginning with / or an HTTP(S) link. Leave a
               button label or link blank to hide that button.
             </p>
@@ -307,7 +286,7 @@ onMounted(loadHomepage);
         The welcome card is hidden. Visitors can still browse repositories when
         discovery is enabled.
       </div>
-      <p class="homepage-help">
+      <p class="site-settings-help">
         {{
           draft.show_repositories
             ? "Repository discovery will appear below this card."
@@ -318,23 +297,8 @@ onMounted(loadHomepage);
   </section>
 </template>
 
+<style scoped src="./site-settings.css"></style>
 <style scoped>
-.homepage-settings {
-  color: var(--text-primary);
-}
-.homepage-help {
-  color: var(--text-secondary);
-  margin: 8px 0 16px;
-  line-height: 1.5;
-  font-size: 14px;
-}
-.homepage-error {
-  padding: 12px;
-  margin-bottom: 16px;
-  color: var(--color-danger, #dc2626);
-  border: 1px solid currentColor;
-  border-radius: 8px;
-}
 .homepage-preview {
   margin-top: 32px;
 }
@@ -368,12 +332,6 @@ h3 {
   color: var(--text-secondary);
   text-align: center;
 }
-.homepage-fields {
-  border: 0;
-  padding: 0;
-  margin: 0;
-  min-width: 0;
-}
 .settings-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -387,40 +345,6 @@ h3 {
 .settings-card :deep(.el-card__header) {
   background: var(--bg-hover);
   border-bottom-color: var(--border-default);
-}
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.field label {
-  font-weight: 600;
-  font-size: 14px;
-}
-.field input,
-.field textarea,
-.field select {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: 10px 12px;
-  background: var(--bg-base);
-  color: var(--text-primary);
-  font: inherit;
-}
-.field textarea {
-  resize: vertical;
-}
-.field .homepage-help {
-  margin: 0;
-}
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  outline: 2px solid var(--color-info);
-  outline-offset: 2px;
 }
 .toggle-row {
   display: flex;
@@ -449,28 +373,9 @@ select:focus-visible {
   padding-top: 20px;
   margin-top: 20px;
 }
-.save-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.save-actions :deep(.el-button) {
-  margin-left: 0;
-}
-.homepage-fields:disabled {
-  opacity: 0.65;
-}
 @media (max-width: 960px) {
   .settings-grid {
     grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 600px) {
-  .save-actions {
-    width: 100%;
-  }
-  .save-actions :deep(.el-button) {
-    flex: 1;
   }
 }
 </style>

@@ -163,11 +163,51 @@ describe("admin health page", () => {
     expect(postgresCard.text()).toContain("PostgreSQL");
     expect(postgresCard.text()).toContain("12 ms");
     expect(postgresCard.text()).toContain("PostgreSQL 15.5");
-    expect(postgresCard.text()).toContain("postgresql://hub@127.0.0.1:5432/hub");
+    expect(postgresCard.text()).toContain(
+      "postgresql://hub@127.0.0.1:5432/hub",
+    );
 
     const smtpCard = wrapper.get('[data-testid="health-card-smtp"]');
     expect(smtpCard.text()).toContain("Disabled");
     expect(smtpCard.text()).toContain("SMTP is disabled in configuration");
+  });
+
+  it("replaces the initial loading card with results and keeps them visible during refresh", async () => {
+    let finishLoading;
+    mocks.api.getDependencyHealth.mockImplementationOnce(
+      () => new Promise((resolve) => (finishLoading = resolve)),
+    );
+    const wrapper = mountPage();
+    await flushPromises();
+
+    expect(
+      wrapper.get('[data-testid="health-loading"]').attributes("aria-busy"),
+    ).toBe("true");
+    expect(wrapper.find('[data-testid="health-grid"]').exists()).toBe(false);
+    finishLoading(SAMPLE_PAYLOAD);
+    await flushPromises();
+    expect(wrapper.find('[data-testid="health-loading"]').exists()).toBe(false);
+    expect(wrapper.findAll('[data-testid^="health-card-"]')).toHaveLength(
+      SAMPLE_PAYLOAD.dependencies.length,
+    );
+
+    mocks.api.getDependencyHealth.mockImplementationOnce(
+      () => new Promise((resolve) => (finishLoading = resolve)),
+    );
+    await wrapper.get('[data-testid="health-recheck"]').trigger("click");
+    expect(wrapper.find('[data-testid="health-loading"]').exists()).toBe(false);
+    expect(
+      wrapper.get('[data-testid="health-grid"]').attributes("aria-busy"),
+    ).toBe("true");
+    expect(wrapper.findAll('[data-testid^="health-card-"]')).toHaveLength(
+      SAMPLE_PAYLOAD.dependencies.length,
+    );
+    finishLoading(SAMPLE_PAYLOAD);
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="health-grid"]').attributes("aria-busy"),
+    ).toBe("false");
+    wrapper.unmount();
   });
 
   function withLakefs(compatibility) {
@@ -175,7 +215,11 @@ describe("admin health page", () => {
       ...SAMPLE_PAYLOAD,
       dependencies: SAMPLE_PAYLOAD.dependencies.map((dep) =>
         dep.name === "lakefs"
-          ? { ...dep, version: compatibility?.version ?? dep.version, compatibility }
+          ? {
+              ...dep,
+              version: compatibility?.version ?? dep.version,
+              compatibility,
+            }
           : dep,
       ),
     };
@@ -201,9 +245,9 @@ describe("admin health page", () => {
     expect(card.text()).not.toContain("BSL 1.1");
     expect(card.text()).not.toContain("Note");
     // Other dependencies carry no compatibility row
-    expect(wrapper.find('[data-testid="health-compat-postgres"]').exists()).toBe(
-      false,
-    );
+    expect(
+      wrapper.find('[data-testid="health-compat-postgres"]').exists(),
+    ).toBe(false);
   });
 
   it("explains an unsupported LakeFS", async () => {
@@ -233,7 +277,8 @@ describe("admin health page", () => {
         status: "supported",
         license: "bsl-1.1",
         reset_supported: true,
-        message: "LakeFS 1.87.0 is supported; it is licensed under the Business Source License 1.1, not Apache 2.0",
+        message:
+          "LakeFS 1.87.0 is supported; it is licensed under the Business Source License 1.1, not Apache 2.0",
       }),
     );
     const wrapper = mountPage();
@@ -251,7 +296,8 @@ describe("admin health page", () => {
         status: "untested",
         license: "bsl-1.1",
         reset_supported: true,
-        message: "LakeFS 1.90.0 is newer than the newest tested release, 1.87.0",
+        message:
+          "LakeFS 1.90.0 is newer than the newest tested release, 1.87.0",
       }),
     );
     const wrapper = mountPage();
@@ -261,13 +307,18 @@ describe("admin health page", () => {
     );
 
     mocks.api.getDependencyHealth.mockResolvedValue(
-      withLakefs({ version: null, status: "mystery", license: null, message: "?" }),
+      withLakefs({
+        version: null,
+        status: "mystery",
+        license: null,
+        message: "?",
+      }),
     );
     await wrapper.get('[data-testid="health-recheck"]').trigger("click");
     await flushPromises();
-    expect(wrapper.get('[data-testid="health-compat-lakefs"]').text()).toContain(
-      "Unknown",
-    );
+    expect(
+      wrapper.get('[data-testid="health-compat-lakefs"]').text(),
+    ).toContain("Unknown");
   });
 
   it("re-fetches when the user clicks Re-check", async () => {

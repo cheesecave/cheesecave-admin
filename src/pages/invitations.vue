@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
@@ -56,9 +57,7 @@ async function handleCreateInvitation() {
     ElMessage.success("Registration invitation created successfully");
   } catch (error) {
     console.error("Failed to create invitation:", error);
-    ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to create invitation",
-    );
+    ElMessage.error(getApiErrorMessage(error, "Failed to create invitation"));
   }
 }
 
@@ -494,7 +493,6 @@ code {
 :deep(.el-card) {
   background-color: var(--bg-card);
   border-color: var(--border-default);
-  border-radius: 12px;
 }
 
 :deep(.el-table) {

@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
@@ -126,9 +127,7 @@ async function loadRepositories() {
       adminStore.logout();
       router.push("/login");
     } else {
-      ElMessage.error(
-        error.response?.data?.detail?.error || "Failed to load repositories",
-      );
+      ElMessage.error(getApiErrorMessage(error, "Failed to load repositories"));
     }
   } finally {
     loading.value = false;
@@ -185,8 +184,7 @@ async function handleViewRepo(row) {
     loadStorageBreakdown();
   } catch (error) {
     ElMessage.error(
-      error.response?.data?.detail?.error ||
-        "Failed to load repository details",
+      getApiErrorMessage(error, "Failed to load repository details"),
     );
   }
 }
@@ -293,8 +291,7 @@ async function handleRecalculateAll() {
     if (err !== "cancel") {
       console.error("Failed to recount storage:", err);
       ElMessage.error(
-        err.response?.data?.detail?.error ||
-          "Failed to recount repository storage",
+        getApiErrorMessage(err, "Failed to recount repository storage"),
       );
     }
   } finally {
@@ -339,9 +336,7 @@ async function confirmMoveRepo() {
     loadRepositories();
   } catch (err) {
     if (err !== "cancel") {
-      ElMessage.error(
-        err.response?.data?.detail || "Failed to move repository",
-      );
+      ElMessage.error(getApiErrorMessage(err, "Failed to move repository"));
     }
   } finally {
     actionLoading.value = false;
@@ -371,12 +366,7 @@ async function confirmSquashRepo() {
     await handleViewRepo(selectedRepo.value);
   } catch (err) {
     if (err !== "cancel") {
-      const detail = err.response?.data?.detail;
-      ElMessage.error(
-        typeof detail === "string"
-          ? detail
-          : detail?.error || "Failed to squash",
-      );
+      ElMessage.error(getApiErrorMessage(err, "Failed to squash"));
     }
   } finally {
     actionLoading.value = false;
@@ -403,7 +393,7 @@ async function confirmDeleteRepo() {
     loadRepositories();
   } catch (err) {
     if (err !== "cancel") {
-      ElMessage.error(err.response?.data?.detail || "Failed to delete");
+      ElMessage.error(getApiErrorMessage(err, "Failed to delete"));
     }
   } finally {
     actionLoading.value = false;
@@ -598,6 +588,7 @@ onMounted(() => {
             v-model:current-page="currentPage"
             v-model:page-size="pageSize"
             :page-sizes="[10, 20, 50, 100]"
+            :pager-count="5"
             layout="total, sizes, prev, pager, next"
             :total="totalCount"
             @current-change="loadRepositories"
@@ -869,7 +860,7 @@ onMounted(() => {
             <el-tab-pane label="Actions" name="actions">
               <div class="space-y-4">
                 <!-- Move Repository -->
-                <el-card class="bg-white dark:bg-gray-800">
+                <el-card>
                   <template #header>
                     <div class="font-semibold">Move/Rename Repository</div>
                   </template>
@@ -897,7 +888,7 @@ onMounted(() => {
                 </el-card>
 
                 <!-- Squash Repository -->
-                <el-card v-if="squashEnabled" class="bg-white dark:bg-gray-800">
+                <el-card v-if="squashEnabled">
                   <template #header>
                     <div class="font-semibold">Squash Repository</div>
                   </template>
@@ -915,7 +906,7 @@ onMounted(() => {
                 </el-card>
 
                 <!-- Delete Repository -->
-                <el-card class="bg-white dark:bg-gray-800">
+                <el-card>
                   <template #header>
                     <div class="font-semibold text-red-600">
                       Delete Repository
@@ -979,10 +970,6 @@ onMounted(() => {
   transition: all 0.2s ease;
 }
 
-:deep(.el-card:hover) {
-  box-shadow: var(--shadow-md);
-}
-
 /* Table styling */
 :deep(.el-table) {
   background-color: var(--bg-card);
@@ -1000,21 +987,6 @@ onMounted(() => {
 
 :deep(.el-table__body tr:hover > td) {
   background-color: var(--bg-hover) !important;
-}
-
-/* Tabs styling */
-:deep(.el-tabs__item) {
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-:deep(.el-tabs__item.is-active) {
-  color: var(--color-info);
-  font-weight: 600;
-}
-
-:deep(.el-tabs__item:hover) {
-  color: var(--color-info);
 }
 
 :deep(.el-descriptions__label) {

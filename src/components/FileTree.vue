@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, watch, onMounted } from "vue";
 import { getRepositoryFiles, formatBytes } from "@/utils/api";
 import { ElMessage } from "element-plus";
@@ -40,7 +41,7 @@ async function loadFiles() {
   } catch (error) {
     console.error("Failed to load files:", error);
     ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to load repository files",
+      getApiErrorMessage(error, "Failed to load repository files"),
     );
   } finally {
     loading.value = false;

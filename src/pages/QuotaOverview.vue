@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
@@ -35,7 +36,7 @@ async function loadOverview() {
       router.push("/login");
     } else {
       ElMessage.error(
-        error.response?.data?.detail?.error || "Failed to load quota overview",
+        getApiErrorMessage(error, "Failed to load quota overview"),
       );
     }
   } finally {
@@ -366,7 +367,8 @@ onMounted(() => {
 .stat-box {
   padding: 20px;
   background: linear-gradient(135deg, var(--bg-hover) 0%, var(--bg-card) 100%);
-  border-radius: 12px;
+  border-radius: var(--admin-card-radius);
+  box-shadow: var(--admin-card-shadow);
   text-align: center;
   border: 1px solid var(--border-default);
   transition: all 0.3s ease;
@@ -374,7 +376,6 @@ onMounted(() => {
 
 .stat-box:hover {
   border-color: var(--color-info);
-  box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 
@@ -397,9 +398,9 @@ onMounted(() => {
 .total-storage {
   padding: 28px 24px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
+  border-radius: var(--admin-card-radius);
   text-align: center;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--admin-card-shadow);
   margin-top: 16px;
 }
 

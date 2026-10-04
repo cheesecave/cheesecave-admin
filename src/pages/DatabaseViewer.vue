@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
@@ -52,7 +53,7 @@ async function loadTables() {
   } catch (error) {
     console.error("Failed to load tables:", error);
     ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to load database tables",
+      getApiErrorMessage(error, "Failed to load database tables"),
     );
   } finally {
     loadingTables.value = false;
@@ -107,9 +108,7 @@ async function executeQuery() {
     }
   } catch (error) {
     console.error("Query execution failed:", error);
-    ElMessage.error(
-      error.response?.data?.detail?.error || "Query execution failed",
-    );
+    ElMessage.error(getApiErrorMessage(error, "Query execution failed"));
   } finally {
     executing.value = false;
   }
@@ -275,7 +274,7 @@ onMounted(() => {
           <!-- Query Editor -->
           <el-card class="mb-4">
             <template #header>
-              <div class="flex justify-between items-center">
+              <div class="flex justify-between items-center flex-wrap gap-3">
                 <span class="font-bold">Query Editor</span>
                 <div class="flex gap-2">
                   <el-button size="small" @click="queryText = ''">
@@ -327,7 +326,7 @@ onMounted(() => {
           <!-- Query Results -->
           <el-card v-if="queryResults">
             <template #header>
-              <div class="flex justify-between items-center">
+              <div class="flex justify-between items-center flex-wrap gap-3">
                 <div>
                   <span class="font-bold">Results</span>
                   <el-tag class="ml-2" type="info">
@@ -434,20 +433,18 @@ onMounted(() => {
   gap: 24px;
   align-items: start;
   max-width: 100%;
-  overflow-x: hidden;
 }
 
 .sidebar-section {
   position: sticky;
   top: 20px;
-  min-width: 300px;
+  min-width: 0;
   max-width: 300px;
 }
 
 .editor-section {
   min-height: 600px;
   min-width: 0; /* Important: allows grid item to shrink below content size */
-  overflow-x: hidden;
 }
 
 .tables-list {

@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
@@ -54,9 +55,7 @@ async function loadStats() {
       adminStore.logout();
       router.push("/login");
     } else {
-      ElMessage.error(
-        error.response?.data?.detail?.error || "Failed to load system stats",
-      );
+      ElMessage.error(getApiErrorMessage(error, "Failed to load system stats"));
     }
   } finally {
     loading.value = false;
@@ -480,11 +479,9 @@ onMounted(() => {
   background-color: var(--bg-card);
   border-color: var(--border-default);
   transition: all 0.3s ease;
-  border-radius: 12px;
 }
 
 :deep(.el-card:hover) {
-  box-shadow: var(--shadow-md);
   border-color: var(--border-strong);
 }
 

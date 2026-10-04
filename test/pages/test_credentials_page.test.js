@@ -182,9 +182,64 @@ describe("admin credentials page", () => {
     expect(mocks.api.listAdminTokens).not.toHaveBeenCalled();
     expect(mocks.api.listAdminSshKeys).not.toHaveBeenCalled();
 
-    expect(
-      wrapper.find('[data-testid="credentials-open-bulk"]').exists(),
-    ).toBe(true);
+    expect(wrapper.find('[data-testid="credentials-open-bulk"]').exists()).toBe(
+      true,
+    );
+  });
+
+  it("keeps all credential lists in one card with a final pinned, right-aligned Actions column", async () => {
+    const wrapper = mountPage();
+    await flushPromises();
+
+    const card = wrapper.get(".credentials-list-card");
+    expect(card.attributes("data-el-card")).toBe("true");
+    expect(card.get('[data-testid="credentials-tabs"]').exists()).toBe(true);
+    const tables = card.findAllComponents(ElementPlusStubs.ElTable);
+    expect(tables).toHaveLength(3);
+    for (const table of tables) {
+      const columns = table.vm.$slots
+        .default()
+        .filter((node) => node.props?.label);
+      const actions = columns.at(-1).props;
+      expect(
+        columns.filter((node) => node.props.label === "Actions"),
+      ).toHaveLength(1);
+      expect(actions).toMatchObject({
+        label: "Actions",
+        fixed: "right",
+        width: "140",
+        align: "right",
+        "header-align": "right",
+      });
+      expect(
+        columns
+          .slice(0, -1)
+          .every((node) => node.props.width || node.props["min-width"]),
+      ).toBe(true);
+    }
+  });
+
+  it("bounds long usernames, token names and SSH titles/fingerprints with overflow tooltips", async () => {
+    const wrapper = mountPage();
+    await flushPromises();
+    const tables = wrapper
+      .get(".credentials-list-card")
+      .findAllComponents(ElementPlusStubs.ElTable);
+    const expectedColumns = [
+      ["User"],
+      ["User", "Name"],
+      ["User", "Title", "Fingerprint"],
+    ];
+    tables.forEach((table, index) => {
+      const columns = table.vm.$slots
+        .default()
+        .filter((node) => expectedColumns[index].includes(node.props?.label));
+      expect(columns).toHaveLength(expectedColumns[index].length);
+      columns.forEach(({ props }) => {
+        expect(Number(props["min-width"])).toBeGreaterThanOrEqual(160);
+        expect(props).toHaveProperty("show-overflow-tooltip");
+      });
+    });
   });
 
   it("re-fetches sessions when Apply is clicked with a username filter", async () => {
@@ -263,14 +318,54 @@ describe("admin credentials page", () => {
     await flushPromises();
 
     expect(mocks.dialogs.confirmDialog).toHaveBeenCalledTimes(1);
-    expect(mocks.api.revokeAdminSession).toHaveBeenCalledWith(
-      "admin-token",
-      5,
-    );
+    expect(mocks.api.revokeAdminSession).toHaveBeenCalledWith("admin-token", 5);
     expect(mocks.dialogs.showSuccess).toHaveBeenCalledWith("Revoked 1");
     // Reload after success: original mount call + one re-fetch.
     expect(mocks.api.listAdminSessions).toHaveBeenCalledTimes(2);
   });
+
+  it.each([
+    [{ error: { message: "Session is locked" } }, "Session is locked"],
+    [
+      [{ msg: "Invalid session id" }, { msg: "Expired request" }],
+      "Invalid session id; Expired request",
+    ],
+  ])(
+    "shows readable revoke failures for structured backend details",
+    async (detail, expected) => {
+      mocks.dialogs.confirmDialog.mockResolvedValueOnce(undefined);
+      mocks.api.revokeAdminSession.mockRejectedValueOnce({
+        response: { status: 422, data: { detail } },
+      });
+      const wrapper = mountPage();
+      await flushPromises();
+      await wrapper.vm.revokeSession({ id: 5, username: "owner" });
+      expect(mocks.dialogs.showError).toHaveBeenCalledWith(expected);
+      expect(mocks.api.listAdminSessions).toHaveBeenCalledTimes(1);
+      expect(mocks.adminStore.logout).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([401, 403])(
+    "keeps login expiry handling for revoke status %s",
+    async (status) => {
+      mocks.dialogs.confirmDialog.mockResolvedValueOnce(undefined);
+      mocks.api.revokeAdminSession.mockRejectedValueOnce({
+        response: {
+          status,
+          data: { detail: { error: { message: "Access denied" } } },
+        },
+      });
+      const wrapper = mountPage();
+      await flushPromises();
+      await wrapper.vm.revokeSession({ id: 5, username: "owner" });
+      expect(mocks.dialogs.showError).toHaveBeenCalledWith(
+        "Invalid admin token. Please login again.",
+      );
+      expect(mocks.adminStore.logout).toHaveBeenCalledOnce();
+      expect(mocks.router.push).toHaveBeenCalledWith("/login");
+    },
+  );
 
   it("does NOT call the API when the operator cancels the revoke dialog", async () => {
     mocks.dialogs.confirmDialog.mockRejectedValueOnce("cancel");

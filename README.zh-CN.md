@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-CheeseCave 的管理门户，基于 Vue 3，提供用户、仓库、配额、站点品牌、访客首页、存储、凭据、缓存、依赖健康状态和后台任务等管理界面。管理 API 和任务执行由独立后端提供。
+CheeseCave 的管理门户，基于 Vue 3，提供用户、仓库、配额、站点品牌、访客首页、页脚与主题设置、存储、凭据、缓存、依赖健康状态和后台任务等管理界面。管理 API 和任务执行由独立后端提供。
 
 | 仓库 | 职责 |
 | --- | --- |
@@ -25,7 +25,7 @@ pnpm dev
 
 登录使用后端配置的管理令牌。浏览器仅在内存中持有令牌，并通过 `X-Admin-Token` 请求头发送。
 
-Site 页面集中提供 Branding 和 Homepage 两个设置标签。访问 `/admin/site?tab=homepage` 可编辑访客欢迎文案、链接、插画、动画和仓库发现，并查看实时预览。切换标签会保留未保存的草稿；Restore Defaults 仅修改草稿，点击 Save 后才会保存。首页设置需要后端支持经过认证的 `GET` 和 `PUT /admin/api/site-homepage`。原 `/admin/homepage` 和 `/admin/site-branding` 地址会重定向到相应的 Site 标签。
+Site 页面集中提供 Branding、Homepage、Footer 和 Theme 四个设置标签。访问 `/admin/site?tab=homepage` 可编辑访客欢迎文案、链接、插画、动画和仓库发现，并查看实时预览。切换标签会保留未保存的草稿；Restore Defaults 仅修改草稿，点击 Save 后才会保存。Footer 设置可编辑链接分组和可选说明，保留受保护的项目署名、版权及许可证信息；Theme 设置控制主站默认模式与配色。这些设置需要后端支持经过认证的 `GET` 和 `PUT /admin/api/site-homepage`、`/admin/api/site-appearance` 及原有品牌 API。原 `/admin/homepage` 和 `/admin/site-branding` 地址会重定向到相应的 Site 标签。
 
 ## 测试与构建
 

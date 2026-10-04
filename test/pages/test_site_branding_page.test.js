@@ -107,25 +107,47 @@ describe("site branding administration", () => {
       );
   }
 
+  it("shows nested API errors without discarding the site name draft", async () => {
+    mountPage();
+    await flushPromises();
+    await wrapper.get("#site-name").setValue("Retain this name");
+    mocks.updateSiteBranding.mockRejectedValue({
+      response: {
+        status: 422,
+        data: { detail: { error: "The name could not be saved" } },
+      },
+    });
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(wrapper.get('[role="alert"]').text()).toBe(
+      "The name could not be saved",
+    );
+    expect(wrapper.get("#site-name").element.value).toBe("Retain this name");
+    expect(wrapper.get("fieldset").element.disabled).toBe(false);
+    expect(mocks.adminStore.logout).not.toHaveBeenCalled();
+    expect(success).not.toHaveBeenCalled();
+  });
+
   it("loads authenticated settings, then saves text and updates the shared cache", async () => {
     mountPage();
     await flushPromises();
     expect(mocks.getSiteBranding).toHaveBeenCalledWith("admin-token");
     expect(wrapper.get("#site-name").element.value).toBe(original.site_name);
     await wrapper.get("#site-name").setValue(" My Hub ");
-    await wrapper.get("#footer-description").setValue("");
+    expect(wrapper.find("#footer-description").exists()).toBe(false);
     mocks.updateSiteBranding.mockResolvedValue({
       ...original,
       site_name: "My Hub",
-      footer_description: "",
     });
     await wrapper.get("form").trigger("submit");
     await flushPromises();
     expect(mocks.updateSiteBranding).toHaveBeenCalledWith("admin-token", {
       site_name: "My Hub",
-      footer_description: "",
     });
     expect(useSiteBrandingStore(pinia).branding.site_name).toBe("My Hub");
+    expect(useSiteBrandingStore(pinia).branding.footer_description).toBe(
+      original.footer_description,
+    );
     expect(JSON.parse(localStorage.getItem(CACHE_KEY)).branding.site_name).toBe(
       "My Hub",
     );

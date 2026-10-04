@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
@@ -174,9 +175,7 @@ async function loadUsers() {
       adminStore.logout();
       router.push("/login");
     } else {
-      ElMessage.error(
-        error.response?.data?.detail?.error || "Failed to load users",
-      );
+      ElMessage.error(getApiErrorMessage(error, "Failed to load users"));
     }
   } finally {
     loading.value = false;
@@ -217,9 +216,7 @@ async function handleViewUser(row) {
     selectedUser.value = await getUserInfo(adminStore.token, row.username);
     userDialogVisible.value = true;
   } catch (error) {
-    ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to load user info",
-    );
+    ElMessage.error(getApiErrorMessage(error, "Failed to load user info"));
   }
 }
 
@@ -234,9 +231,7 @@ async function handleCreateUser() {
     loadUsers();
   } catch (error) {
     console.error("Failed to create user:", error);
-    ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to create user",
-    );
+    ElMessage.error(getApiErrorMessage(error, "Failed to create user"));
   }
 }
 
@@ -300,9 +295,7 @@ background tasks. This action CANNOT be undone!`,
         }
       }
     } else {
-      ElMessage.error(
-        error.response?.data?.detail?.error || "Failed to delete user",
-      );
+      ElMessage.error(getApiErrorMessage(error, "Failed to delete user"));
     }
   }
 }
@@ -356,9 +349,7 @@ async function saveQuota() {
     userDialogVisible.value = false;
     await loadUsers();
   } catch (error) {
-    ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to update quota",
-    );
+    ElMessage.error(getApiErrorMessage(error, "Failed to update quota"));
   } finally {
     loading.value = false;
   }
@@ -376,8 +367,7 @@ async function handleToggleEmailVerification(row) {
     loadUsers();
   } catch (error) {
     ElMessage.error(
-      error.response?.data?.detail?.error ||
-        "Failed to update email verification",
+      getApiErrorMessage(error, "Failed to update email verification"),
     );
   }
 }
@@ -613,7 +603,8 @@ onMounted(() => {
           :page-size="pageSize"
           :total="usersTotal"
           :disabled="loading"
-          layout="prev, pager, next, total"
+          :pager-count="5"
+          layout="total, prev, pager, next"
           class="mt-4"
           @current-change="loadUsers"
         />

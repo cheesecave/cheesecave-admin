@@ -1,11 +1,24 @@
 <script setup>
-import { ref } from "vue";
+import { getApiErrorMessage } from "@/utils/api-error";
+import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAdminStore } from "@/stores/admin";
+import { useSiteBrandingStore } from "@/stores/siteBranding";
 import { ElMessage } from "element-plus";
 
 const router = useRouter();
 const adminStore = useAdminStore();
+const siteBrandingStore = useSiteBrandingStore();
+const logoFailed = ref(false);
+const logoSrc = computed(() =>
+  !logoFailed.value && siteBrandingStore.branding.header_logo
+    ? siteBrandingStore.branding.header_logo
+    : "/admin/images/logo-square.svg",
+);
+watch(
+  () => siteBrandingStore.branding.header_logo,
+  () => (logoFailed.value = false),
+);
 
 const tokenInput = ref("");
 const loading = ref(false);
@@ -29,7 +42,7 @@ async function handleLogin() {
     }
   } catch (error) {
     console.error("Login error:", error);
-    ElMessage.error(error.response?.data?.detail?.error || "Login failed");
+    ElMessage.error(getApiErrorMessage(error, "Login failed"));
     tokenInput.value = "";
   } finally {
     loading.value = false;
@@ -41,11 +54,14 @@ async function handleLogin() {
   <div class="login-container">
     <div class="login-card">
       <div class="login-header">
-        <div
-          class="i-carbon-security text-4xl text-blue-600 dark:text-blue-400 mb-4"
+        <img
+          :src="logoSrc"
+          :alt="`${siteBrandingStore.branding.site_name} logo`"
+          class="login-brand-logo"
+          @error="logoFailed = true"
         />
         <h1 class="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">
-          CheeseCave Admin
+          {{ siteBrandingStore.branding.site_name }} Admin
         </h1>
         <p class="text-gray-600 dark:text-gray-400">
           Enter your admin token to continue
@@ -116,6 +132,14 @@ html.dark .login-card {
 .login-header {
   text-align: center;
   margin-bottom: 32px;
+}
+
+.login-brand-logo {
+  display: block;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  object-fit: contain;
 }
 
 .login-form {

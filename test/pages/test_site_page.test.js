@@ -5,6 +5,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ElementPlusStubs } from "../helpers/vue";
 import { DEFAULT_HOMEPAGE } from "../../src/shared/site-homepage.js";
+import { DEFAULT_APPEARANCE } from "../../src/shared/site-appearance.js";
 
 const mocks = vi.hoisted(() => ({
   adminStore: { token: "admin-token", logout: vi.fn() },
@@ -15,6 +16,8 @@ const mocks = vi.hoisted(() => ({
   resetSiteBrandingAsset: vi.fn(),
   getSiteHomepage: vi.fn(),
   updateSiteHomepage: vi.fn(),
+  getSiteAppearance: vi.fn(),
+  updateSiteAppearance: vi.fn(),
 }));
 vi.mock("@/stores/admin", () => ({ useAdminStore: () => mocks.adminStore }));
 vi.mock("@/utils/api", () => ({
@@ -26,6 +29,8 @@ vi.mock("@/utils/api", () => ({
   resetSiteBrandingAsset: (...args) => mocks.resetSiteBrandingAsset(...args),
   getSiteHomepage: (...args) => mocks.getSiteHomepage(...args),
   updateSiteHomepage: (...args) => mocks.updateSiteHomepage(...args),
+  getSiteAppearance: (...args) => mocks.getSiteAppearance(...args),
+  updateSiteAppearance: (...args) => mocks.updateSiteAppearance(...args),
 }));
 vi.mock("@/components/AdminLayout.vue", () => ({
   default: defineComponent({
@@ -70,6 +75,9 @@ describe("consolidated Site administration", () => {
     mocks.adminStore.token = "admin-token";
     mocks.getSiteBranding.mockResolvedValue({ ...branding });
     mocks.getSiteHomepage.mockResolvedValue({ ...DEFAULT_HOMEPAGE });
+    mocks.getSiteAppearance.mockResolvedValue(
+      JSON.parse(JSON.stringify(DEFAULT_APPEARANCE)),
+    );
     pinia = createPinia();
     router = createRouter({
       history: createMemoryHistory(),
@@ -162,7 +170,6 @@ describe("consolidated Site administration", () => {
   it("updates the tab URL while preserving other query parameters and unsaved drafts", async () => {
     await mountPage("/site?source=sidebar");
     await wrapper.get("#site-name").setValue("Unsaved branding");
-    await wrapper.get("#footer-description").setValue("An unsaved footer");
     await wrapper.get("#site-homepage-tab").trigger("click");
     await flushPromises();
     expect(router.currentRoute.value.query).toEqual({
@@ -174,9 +181,7 @@ describe("consolidated Site administration", () => {
     await wrapper.get("#site-branding-tab").trigger("click");
     await flushPromises();
     expect(wrapper.get("#site-name").element.value).toBe("Unsaved branding");
-    expect(wrapper.get("#footer-description").element.value).toBe(
-      "An unsaved footer",
-    );
+    expect(wrapper.find("#footer-description").exists()).toBe(false);
     await wrapper.get("#site-homepage-tab").trigger("click");
     await flushPromises();
     expect(wrapper.get("#homepage-title").element.value).toBe(
@@ -193,20 +198,41 @@ describe("consolidated Site administration", () => {
     await mountPage();
     await wrapper.get("#site-branding-tab").trigger("keydown", { key: "End" });
     await flushPromises();
-    expect(router.currentRoute.value.query.tab).toBe("homepage");
-    expect(document.activeElement).toBe(
-      wrapper.get("#site-homepage-tab").element,
-    );
-    expect(wrapper.get("#site-homepage-tab").attributes("tabindex")).toBe("0");
+    expect(router.currentRoute.value.query.tab).toBe("theme");
+    expect(document.activeElement).toBe(wrapper.get("#site-theme-tab").element);
+    expect(wrapper.get("#site-theme-tab").attributes("tabindex")).toBe("0");
     await wrapper
-      .get("#site-homepage-tab")
+      .get("#site-theme-tab")
       .trigger("keydown", { key: "ArrowRight" });
     await flushPromises();
     expect(router.currentRoute.value.query.tab).toBe("branding");
     expect(document.activeElement).toBe(
       wrapper.get("#site-branding-tab").element,
     );
-    expect(wrapper.get("#site-homepage-tab").attributes("tabindex")).toBe("-1");
+    expect(wrapper.get("#site-theme-tab").attributes("tabindex")).toBe("-1");
+  });
+
+  it("opens Footer and Theme directly and retains each panel's unsaved draft", async () => {
+    await mountPage("/site?tab=footer");
+    await wrapper.get("#footer-description").setValue("Retained footer draft");
+    await wrapper.get("#footer-group-0-title").setValue("Resources");
+    await wrapper.get("#site-theme-tab").trigger("click");
+    await flushPromises();
+    await wrapper.get("#theme-primary-light").setValue("#aabbcc");
+    await wrapper.get("#site-footer-tab").trigger("click");
+    await flushPromises();
+    expect(wrapper.get("#footer-description").element.value).toBe(
+      "Retained footer draft",
+    );
+    expect(wrapper.get("#footer-group-0-title").element.value).toBe(
+      "Resources",
+    );
+    await wrapper.get("#site-theme-tab").trigger("click");
+    await flushPromises();
+    expect(wrapper.get("#theme-primary-light").element.value).toBe("#aabbcc");
+    expect(mocks.getSiteAppearance).toHaveBeenCalledTimes(2);
+    expect(mocks.updateSiteAppearance).not.toHaveBeenCalled();
+    expect(mocks.updateSiteBranding).not.toHaveBeenCalled();
   });
 
   it("responds to route navigation between tabs without losing drafts", async () => {

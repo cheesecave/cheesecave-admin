@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
@@ -95,7 +96,7 @@ async function loadObjects(prefix = "") {
   } catch (error) {
     console.error("Failed to load objects:", error);
     ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to load storage objects",
+      getApiErrorMessage(error, "Failed to load storage objects"),
     );
   } finally {
     loading.value = false;
@@ -204,7 +205,7 @@ async function confirmDeleteFolder(folderName) {
     loadObjects(currentPath.value); // Refresh
   } catch (err) {
     if (err !== "cancel") {
-      ElMessage.error(err.response?.data?.detail || "Failed to delete folder");
+      ElMessage.error(getApiErrorMessage(err, "Failed to delete folder"));
     }
   }
 }
@@ -392,9 +393,7 @@ onMounted(() => {
         class="mt-6"
         :token="adminStore.token"
         @error="
-          ElMessage.error(
-            $event.response?.data?.detail?.error || 'LakeFS audit failed',
-          )
+          ElMessage.error(getApiErrorMessage($event, 'LakeFS audit failed'))
         "
       />
 
@@ -403,8 +402,7 @@ onMounted(() => {
         :token="adminStore.token"
         @error="
           ElMessage.error(
-            $event.response?.data?.detail?.error ||
-              'LFS reference reconciliation failed',
+            getApiErrorMessage($event, 'LFS reference reconciliation failed'),
           )
         "
       />
@@ -414,8 +412,7 @@ onMounted(() => {
         :token="adminStore.token"
         @error="
           ElMessage.error(
-            $event.response?.data?.detail?.error ||
-              'Storage usage recount failed',
+            getApiErrorMessage($event, 'Storage usage recount failed'),
           )
         "
       />
@@ -432,7 +429,6 @@ onMounted(() => {
 
 .bucket-card:hover {
   border-color: var(--color-info);
-  box-shadow: var(--shadow-md);
   transform: translateY(-4px);
   background: linear-gradient(135deg, var(--bg-hover) 0%, var(--bg-card) 100%);
 }

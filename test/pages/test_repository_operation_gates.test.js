@@ -215,4 +215,58 @@ describe("admin storage recount of repositories", () => {
       "Failed to recount repository storage",
     );
   });
+
+  it("renders nested errors from an actual repository deletion and keeps cancellation silent", async () => {
+    const elementPlus = await vi.importActual("element-plus");
+    const prompt = vi.spyOn(elementPlus.ElMessageBox, "prompt");
+    prompt.mockResolvedValueOnce({ value: "DELETE" });
+    mocks.api.deleteRepositoryAdmin.mockRejectedValueOnce({
+      response: {
+        status: 422,
+        data: { detail: { error: { message: "Repository is locked" } } },
+      },
+    });
+    const wrapper = mountPage();
+    await flushPromises();
+    wrapper.vm.selectedRepo = {
+      repo_type: "model",
+      namespace: "owner",
+      name: "demo",
+    };
+    await wrapper.vm.confirmDeleteRepo();
+    expect(mocks.api.deleteRepositoryAdmin).toHaveBeenCalledWith(
+      "admin-token",
+      "model",
+      "owner",
+      "demo",
+    );
+    expect(messages.error).toHaveBeenLastCalledWith("Repository is locked");
+    const errorsBeforeCancel = messages.error.mock.calls.length;
+    prompt.mockRejectedValueOnce("cancel");
+    await wrapper.vm.confirmDeleteRepo();
+    expect(messages.error).toHaveBeenCalledTimes(errorsBeforeCancel);
+    expect(mocks.api.deleteRepositoryAdmin).toHaveBeenCalledOnce();
+    prompt.mockRestore();
+    wrapper.unmount();
+  });
+
+  it.each([401, 403])(
+    "keeps repository list authentication handling for status %s",
+    async (status) => {
+      mocks.api.listRepositories.mockRejectedValueOnce({
+        response: {
+          status,
+          data: { detail: { error: { message: "Denied" } } },
+        },
+      });
+      const wrapper = mountPage();
+      await flushPromises();
+      expect(messages.error).toHaveBeenCalledWith(
+        "Invalid admin token. Please login again.",
+      );
+      expect(mocks.adminStore.logout).toHaveBeenCalledOnce();
+      expect(mocks.router.push).toHaveBeenCalledWith("/login");
+      wrapper.unmount();
+    },
+  );
 });

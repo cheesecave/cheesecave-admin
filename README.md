@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-The Vue 3 administration portal for CheeseCave, with interfaces for managing users, repositories, quotas, site branding, the visitor homepage, storage, credentials, caches, dependency health and background tasks. The separate backend provides administration APIs and executes tasks.
+The Vue 3 administration portal for CheeseCave, with interfaces for managing users, repositories, quotas, site branding, the visitor homepage, footer and theme settings, storage, credentials, caches, dependency health and background tasks. The separate backend provides administration APIs and executes tasks.
 
 | Repository | Responsibility |
 | --- | --- |
@@ -25,7 +25,7 @@ Open `http://localhost:5174/admin/`. Start the backend separately. The Admin rou
 
 Log in with the backend's configured administration token. The browser holds this token only in memory and sends it through the `X-Admin-Token` request header.
 
-The Site page combines Branding and Homepage settings. Open `/admin/site?tab=homepage` to edit visitor welcome text, links, illustration, animation and repository discovery, with a live preview. Switching tabs preserves unsaved drafts; Restore Defaults changes the draft until Save is selected. Homepage settings require backend support for authenticated `GET` and `PUT /admin/api/site-homepage`. The former `/admin/homepage` and `/admin/site-branding` URLs redirect to their corresponding Site tabs.
+The Site page combines Branding, Homepage, Footer and Theme settings. Open `/admin/site?tab=homepage` to edit visitor welcome text, links, illustration, animation and repository discovery, with a live preview. Switching tabs preserves unsaved drafts; Restore Defaults changes the draft until Save is selected. Footer settings edit link groups and the optional description while preserving protected project attribution, copyright and license information. Theme settings control the visitor site's default mode and colors. These panels require backend support for authenticated `GET` and `PUT /admin/api/site-homepage` and `/admin/api/site-appearance`, alongside the existing branding APIs. The former `/admin/homepage` and `/admin/site-branding` URLs redirect to their corresponding Site tabs.
 
 ## Testing and builds
 

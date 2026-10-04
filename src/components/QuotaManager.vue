@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, watch, onUnmounted } from "vue";
 import {
   getQuota,
@@ -53,7 +54,7 @@ async function loadQuota() {
   } catch (error) {
     console.error("Failed to load quota:", error);
     ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to load quota information",
+      getApiErrorMessage(error, "Failed to load quota information"),
     );
   } finally {
     loading.value = false;
@@ -94,9 +95,7 @@ async function handleSaveQuota() {
     loadQuota();
   } catch (error) {
     console.error("Failed to update quota:", error);
-    ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to update quota",
-    );
+    ElMessage.error(getApiErrorMessage(error, "Failed to update quota"));
   }
 }
 
@@ -116,9 +115,7 @@ async function handleRecalculate() {
     loadQuota();
   } catch (error) {
     console.error("Failed to recalculate:", error);
-    ElMessage.error(
-      error.response?.data?.detail?.error || "Failed to recalculate storage",
-    );
+    ElMessage.error(getApiErrorMessage(error, "Failed to recalculate storage"));
   } finally {
     recalculating.value = false;
   }

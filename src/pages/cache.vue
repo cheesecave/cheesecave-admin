@@ -1,4 +1,5 @@
 <script setup>
+import { getApiErrorMessage } from "@/utils/api-error";
 import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
@@ -65,18 +66,16 @@ const namespaceRows = computed(() => {
     ...Object.keys(metrics.value.set_count || {}),
     ...Object.keys(metrics.value.invalidate_count || {}),
   ]);
-  return [...ns]
-    .sort()
-    .map((name) => {
-      const hits = metrics.value.hits?.[name] ?? 0;
-      const misses = metrics.value.misses?.[name] ?? 0;
-      const errors = metrics.value.errors?.[name] ?? 0;
-      const sets = metrics.value.set_count?.[name] ?? 0;
-      const invalidates = metrics.value.invalidate_count?.[name] ?? 0;
-      const total = hits + misses;
-      const hitRate = total > 0 ? (hits / total) * 100 : null;
-      return { name, hits, misses, errors, sets, invalidates, hitRate, total };
-    });
+  return [...ns].sort().map((name) => {
+    const hits = metrics.value.hits?.[name] ?? 0;
+    const misses = metrics.value.misses?.[name] ?? 0;
+    const errors = metrics.value.errors?.[name] ?? 0;
+    const sets = metrics.value.set_count?.[name] ?? 0;
+    const invalidates = metrics.value.invalidate_count?.[name] ?? 0;
+    const total = hits + misses;
+    const hitRate = total > 0 ? (hits / total) * 100 : null;
+    return { name, hits, misses, errors, sets, invalidates, hitRate, total };
+  });
 });
 
 const totals = computed(() => {
@@ -148,22 +147,18 @@ async function loadStats({ silent = false } = {}) {
     snapshot.value = data;
     lastError.value = null;
   } catch (error) {
-    if (
-      error.response?.status === 401 ||
-      error.response?.status === 403
-    ) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
       ElMessage.error("Invalid admin token. Please login again.");
       adminStore.logout();
       router.push("/login");
       return;
     }
-    const detail =
-      error.response?.data?.detail ||
-      error.message ||
-      "Failed to load cache stats";
-    lastError.value = String(detail);
+    const detail = getApiErrorMessage(error, "Failed to load cache stats", {
+      preferRequestMessage: true,
+    });
+    lastError.value = detail;
     if (!silent) {
-      ElMessage.error(String(detail));
+      ElMessage.error(detail);
     }
   } finally {
     loading.value = false;
@@ -191,11 +186,10 @@ async function handleResetMetrics() {
     ElMessage.success("Cache metric counters reset");
     await loadStats({ silent: true });
   } catch (error) {
-    const detail =
-      error.response?.data?.detail ||
-      error.message ||
-      "Failed to reset cache metrics";
-    ElMessage.error(String(detail));
+    const detail = getApiErrorMessage(error, "Failed to reset cache metrics", {
+      preferRequestMessage: true,
+    });
+    ElMessage.error(detail);
   } finally {
     resetting.value = false;
   }
@@ -373,8 +367,8 @@ onBeforeUnmount(() => {
               v-if="totals.total > 0"
               class="text-gray-500 dark:text-gray-400 text-sm"
             >
-              total {{ formatNumber(totals.total) }} reads ·
-              hit rate {{ formatPercentage(totals.hitRate) }}
+              total {{ formatNumber(totals.total) }} reads · hit rate
+              {{ formatPercentage(totals.hitRate) }}
             </span>
           </div>
         </template>
@@ -428,10 +422,7 @@ onBeforeUnmount(() => {
             </template>
           </el-table-column>
         </el-table>
-        <el-empty
-          v-else-if="!loading"
-          description="No traffic recorded yet"
-        />
+        <el-empty v-else-if="!loading" description="No traffic recorded yet" />
       </el-card>
     </AdminPage>
   </AdminLayout>
@@ -440,10 +431,6 @@ onBeforeUnmount(() => {
 <style scoped>
 .refresh-select {
   width: 160px;
-}
-
-.overall-banner {
-  border-radius: 10px;
 }
 
 .bootstrap-meta {
@@ -472,5 +459,4 @@ onBeforeUnmount(() => {
   font-size: 14px;
   color: var(--el-text-color-primary);
 }
-
 </style>

@@ -6,16 +6,28 @@ import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
 import SiteBrandingSettings from "@/components/site/SiteBrandingSettings.vue";
 import HomepageSettings from "@/components/site/HomepageSettings.vue";
+import FooterSettings from "@/components/site/FooterSettings.vue";
+import ThemeSettings from "@/components/site/ThemeSettings.vue";
 
 const route = useRoute();
 const router = useRouter();
-const activeTab = computed(() =>
-  route.query.tab === "homepage" ? "homepage" : "branding",
-);
 const tabs = [
   { key: "branding", label: "Branding", icon: "i-carbon-paint-brush" },
   { key: "homepage", label: "Homepage", icon: "i-carbon-home" },
+  { key: "footer", label: "Footer", icon: "i-carbon-link" },
+  { key: "theme", label: "Theme", icon: "i-carbon-color-palette" },
 ];
+const activeTab = computed(() =>
+  tabs.some((tab) => tab.key === route.query.tab)
+    ? route.query.tab
+    : "branding",
+);
+const panels = {
+  branding: SiteBrandingSettings,
+  homepage: HomepageSettings,
+  footer: FooterSettings,
+  theme: ThemeSettings,
+};
 
 function selectTab(tab) {
   if (tab === activeTab.value) return;
@@ -43,10 +55,14 @@ function handleTabKey(event, index) {
     <AdminPage class="site-page">
       <AdminPageHeader
         title="Site"
-        subtitle="Manage your site's identity and visitor homepage in one place."
+        subtitle="Manage your site's identity, homepage, footer and appearance in one place."
       />
       <el-card class="site-settings-card" shadow="never">
-        <div class="site-tabs" role="tablist" aria-label="Site settings">
+        <div
+          class="site-tabs admin-tab-list"
+          role="tablist"
+          aria-label="Site settings"
+        >
           <button
             v-for="(tab, index) in tabs"
             :id="`site-${tab.key}-tab`"
@@ -70,14 +86,7 @@ function handleTabKey(event, index) {
           :aria-labelledby="`site-${activeTab}-tab`"
         >
           <KeepAlive>
-            <component
-              :is="
-                activeTab === 'homepage'
-                  ? HomepageSettings
-                  : SiteBrandingSettings
-              "
-              :key="activeTab"
-            />
+            <component :is="panels[activeTab]" :key="activeTab" />
           </KeepAlive>
         </section>
       </el-card>
@@ -95,39 +104,14 @@ function handleTabKey(event, index) {
   padding: 0;
 }
 .site-tabs {
-  display: flex;
-  gap: 8px;
-  border-bottom: 1px solid var(--border-default);
-  padding: 0 12px;
-  background: var(--bg-hover);
+  margin: 24px 24px 0;
+  max-width: calc(100% - 48px);
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 .site-tabs button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-}
-.site-tabs button.active,
-.site-tabs button.active:hover {
-  background: var(--bg-card);
-  border-bottom-color: var(--color-info, #409eff);
-  color: var(--text-primary);
-  font-weight: 600;
-}
-.site-tabs button:hover {
-  background: var(--bg-hover);
-}
-.site-tabs button:focus-visible {
-  outline: 2px solid var(--color-info);
-  outline-offset: -3px;
-  border-radius: 6px 6px 0 0;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .site-tab-panel {
   min-width: 0;
@@ -138,12 +122,8 @@ function handleTabKey(event, index) {
     padding: 16px;
   }
   .site-tabs {
-    gap: 0;
-  }
-  .site-tabs button {
-    flex: 1;
-    justify-content: center;
-    padding-inline: 10px;
+    margin: 16px 16px 0;
+    max-width: calc(100% - 32px);
   }
 }
 </style>

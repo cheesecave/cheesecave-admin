@@ -38,6 +38,7 @@ declare module 'vue' {
     ElTabs: typeof import('element-plus/es')['ElTabs']
     ElTag: typeof import('element-plus/es')['ElTag']
     FileTree: typeof import('./components/FileTree.vue')['default']
+    FooterSettings: typeof import('./components/site/FooterSettings.vue')['default']
     GlobalSearch: typeof import('./components/GlobalSearch.vue')['default']
     HelloWorld: typeof import('./components/HelloWorld.vue')['default']
     HomepageSettings: typeof import('./components/site/HomepageSettings.vue')['default']
@@ -45,8 +46,10 @@ declare module 'vue' {
     QuotaManager: typeof import('./components/QuotaManager.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SiteActions: typeof import('./components/site/SiteActions.vue')['default']
     SiteBrandingSettings: typeof import('./components/site/SiteBrandingSettings.vue')['default']
     SiteSettingsHeader: typeof import('./components/site/SiteSettingsHeader.vue')['default']
+    ThemeSettings: typeof import('./components/site/ThemeSettings.vue')['default']
     StatsCard: typeof import('./components/StatsCard.vue')['default']
   }
   export interface GlobalDirectives {
