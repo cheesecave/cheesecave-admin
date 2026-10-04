@@ -15,7 +15,7 @@ const versionLabel = `${buildInfo.commit.slice(0, 7)}${buildInfo.dirty ? "-dirty
 const commitUrl =
   buildInfo.commit === "unknown"
     ? null
-    : `https://github.com/deepghs/KohakuHub/commit/${buildInfo.commit}`;
+    : `https://github.com/cheesecave/cheesecave-admin/commit/${buildInfo.commit}`;
 const versionTitle =
   buildInfo.commit === "unknown"
     ? "Frontend Git commit unavailable"

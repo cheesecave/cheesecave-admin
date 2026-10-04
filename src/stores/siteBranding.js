@@ -9,7 +9,7 @@ import {
   parseCachedBranding,
   readCachedBranding,
   saveCachedBranding,
-} from "../../../shared/site-branding.js";
+} from "../shared/site-branding.js";
 
 export const useSiteBrandingStore = defineStore("siteBranding", () => {
   const branding = ref(readCachedBranding());

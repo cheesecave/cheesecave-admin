@@ -45,6 +45,7 @@ let wrapper;
 
 function mountPage() {
   wrapper = mount(DatabaseViewerPage, {
+    attachTo: document.body,
     global: {
       components: { ElAlert: elementPlusModule.ElAlert },
       stubs: { ...ElementPlusStubs, ElAlert: false },
@@ -121,7 +122,9 @@ describe("admin database viewer page", () => {
 
     await notice.get(".el-alert__close-btn").trigger("click");
     await flushPromises();
-    expect(notice.isVisible()).toBe(false);
+    // The real alert closes after its hideAfter timer. Mounting in document.body
+    // also lets jsdom invalidate cached computed styles when visibility changes.
+    await vi.waitFor(() => expect(notice.isVisible()).toBe(false));
     expect(page.get(".admin-page-header").isVisible()).toBe(true);
     expect(page.get(".sql-editor").isVisible()).toBe(true);
     expect(page.get(".sql-editor input").element.value).toBe(query);

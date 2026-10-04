@@ -94,7 +94,7 @@ describe("AdminLayout", () => {
     );
     const commitLink = version.get("a");
     expect(commitLink.attributes("href")).toBe(
-      `https://github.com/deepghs/KohakuHub/commit/${commit}`,
+      `https://github.com/cheesecave/cheesecave-admin/commit/${commit}`,
     );
     expect(commitLink.text()).toBe(`0123456${dirty ? "-dirty" : ""}`);
     expect(commitLink.attributes("target")).toBe("_blank");

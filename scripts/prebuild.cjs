@@ -1,36 +1,36 @@
 #!/usr/bin/env node
 /**
- * Prebuild script for KohakuHub Admin Portal
+ * Prebuild script for CheeseCave Admin Portal
  * Copies logo files from the root images/ directory to public/
  * so they can be used as favicon and branding assets.
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 // Define paths relative to the script location
-const rootDir = path.join(__dirname, '..', '..', '..');
-const publicDir = path.join(__dirname, '..', 'public');
-const imagesPublicDir = path.join(publicDir, 'images');
+const rootDir = path.join(__dirname, "..");
+const publicDir = path.join(__dirname, "..", "public");
+const imagesPublicDir = path.join(publicDir, "images");
 
 // Files to copy
 const filesToCopy = [
   {
-    source: path.join(rootDir, 'images', 'logo-square.svg'),
-    dest: path.join(imagesPublicDir, 'logo-square.svg'),
+    source: path.join(rootDir, "images", "logo-square.svg"),
+    dest: path.join(imagesPublicDir, "logo-square.svg"),
   },
   {
-    source: path.join(rootDir, 'images', 'logo-banner.svg'),
-    dest: path.join(imagesPublicDir, 'logo-banner.svg'),
+    source: path.join(rootDir, "images", "logo-banner.svg"),
+    dest: path.join(imagesPublicDir, "logo-banner.svg"),
   },
   {
-    source: path.join(rootDir, 'images', 'logo-banner-dark.svg'),
-    dest: path.join(imagesPublicDir, 'logo-banner-dark.svg'),
+    source: path.join(rootDir, "images", "logo-banner-dark.svg"),
+    dest: path.join(imagesPublicDir, "logo-banner-dark.svg"),
   },
   // Favicon (copy square logo as favicon)
   {
-    source: path.join(rootDir, 'images', 'logo-square.svg'),
-    dest: path.join(publicDir, 'favicon.svg'),
+    source: path.join(rootDir, "images", "logo-square.svg"),
+    dest: path.join(publicDir, "favicon.svg"),
   },
 ];
 
@@ -49,7 +49,9 @@ function copyFile(source, dest) {
 
     // Copy file
     fs.copyFileSync(source, dest);
-    console.log(`✓ Copied: ${path.basename(source)} -> ${path.relative(process.cwd(), dest)}`);
+    console.log(
+      `✓ Copied: ${path.basename(source)} -> ${path.relative(process.cwd(), dest)}`,
+    );
   } catch (error) {
     console.error(`✗ Failed to copy ${source}: ${error.message}`);
     process.exit(1);
@@ -60,7 +62,7 @@ function copyFile(source, dest) {
  * Main function
  */
 function main() {
-  console.log('🎨 Copying logo files to public directory...\n');
+  console.log("🎨 Copying logo files to public directory...\n");
 
   // Create images directory if it doesn't exist
   if (!fs.existsSync(imagesPublicDir)) {
@@ -72,7 +74,7 @@ function main() {
     copyFile(file.source, file.dest);
   });
 
-  console.log('\n✅ Logo files copied successfully!');
+  console.log("\n✅ Logo files copied successfully!");
 }
 
 // Run the script

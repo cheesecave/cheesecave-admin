@@ -1363,7 +1363,7 @@ onMounted(async () => {
 
             <p class="tester-section-hint">
               Send a real HTTP request from this browser to the live
-              KohakuHub instance — same handler chain a production
+              CheeseCave instance — same handler chain a production
               <code>huggingface_hub</code>
               client would hit. The chain (local hop first, then any
               fallback hops walked) is reconstructed from the
@@ -1441,11 +1441,11 @@ onMounted(async () => {
                   shape. Admin can't impersonate other users in this
                   mode — paste the user-in-question's
                   <em>own</em>
-                  KohakuHub access token here when debugging
+                  CheeseCave access token here when debugging
                   user-specific issues. Leave blank to send anonymously.
                 </p>
                 <el-form label-width="160px" class="tester-form">
-                  <el-form-item label="KohakuHub token">
+                  <el-form-item label="CheeseCave token">
                     <el-input
                       v-model="realKhubToken"
                       type="password"
@@ -1682,7 +1682,7 @@ onMounted(async () => {
           <el-form-item label="Source Type" required>
             <el-select v-model="formData.source_type" style="width: 100%">
               <el-option label="HuggingFace" value="huggingface" />
-              <el-option label="KohakuHub" value="kohakuhub" />
+              <el-option label="CheeseCave / KohakuHub" value="kohakuhub" />
             </el-select>
           </el-form-item>
 

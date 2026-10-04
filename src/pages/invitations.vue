@@ -346,7 +346,7 @@ onMounted(() => {
         <div class="space-y-3 text-sm">
           <p>
             Registration invitations allow users to create accounts on this
-            KohakuHub instance. You can optionally add them to an organization
+            CheeseCave instance. You can optionally add them to an organization
             automatically upon registration.
           </p>
 

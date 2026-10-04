@@ -4,10 +4,11 @@ import { defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
 import AutoImport from "unplugin-auto-import/vite";
 
-const testRoot = fileURLToPath(
-  new URL("../../test/kohaku-hub-admin", import.meta.url),
-).replaceAll("\\", "/");
-const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
+const testRoot = fileURLToPath(new URL("./test", import.meta.url)).replaceAll(
+  "\\",
+  "/",
+);
+const repoRoot = fileURLToPath(new URL(".", import.meta.url));
 const adminRoot = dirname(fileURLToPath(import.meta.url));
 const adminNodeModules = resolve(adminRoot, "node_modules");
 
@@ -40,6 +41,8 @@ export default defineConfig({
     },
   },
   test: {
+    // Bound parallelism for laptops and concurrent frontend/backend validation.
+    maxWorkers: 2,
     environment: "jsdom",
     globals: true,
     setupFiles: [`${testRoot}/setup/vitest.setup.js`],
@@ -48,7 +51,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "text-summary", "cobertura"],
-      reportsDirectory: "../../coverage-ui-admin",
+      reportsDirectory: "./coverage",
       include: [
         "src/App.vue",
         "src/components/AdminLayout.vue",

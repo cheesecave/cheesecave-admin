@@ -1,25 +1,25 @@
-import { fileURLToPath, URL } from 'node:url'
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import VueRouter from 'unplugin-vue-router/vite'
-import AutoImport from 'unplugin-auto-import/vite'
-import Components from 'unplugin-vue-components/vite'
-import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
-import UnoCSS from 'unocss/vite'
-import { getFrontendBuildInfo } from '../../scripts/frontend-build-info.mjs'
+import { fileURLToPath, URL } from "node:url";
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+import VueRouter from "unplugin-vue-router/vite";
+import AutoImport from "unplugin-auto-import/vite";
+import Components from "unplugin-vue-components/vite";
+import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
+import UnoCSS from "unocss/vite";
+import { getFrontendBuildInfo } from "./scripts/frontend-build-info.mjs";
 
 export default defineConfig({
-  base: '/admin/',
+  base: "/admin/",
   define: {
-    __BUILD_INFO__: JSON.stringify(getFrontendBuildInfo())
+    __BUILD_INFO__: JSON.stringify(getFrontendBuildInfo()),
   },
   plugins: [
     // Must be before Vue plugin
     VueRouter({
-      routesFolder: 'src/pages',
-      dts: 'src/typed-router.d.ts',
-      extensions: ['.vue'],
-      exclude: ['**/components/**']
+      routesFolder: "src/pages",
+      dts: "src/typed-router.d.ts",
+      extensions: [".vue"],
+      exclude: ["**/components/**"],
     }),
 
     vue(),
@@ -27,18 +27,18 @@ export default defineConfig({
     // Auto import APIs
     AutoImport({
       imports: [
-        'vue',
-        'pinia',
-        'vue-router',
+        "vue",
+        "pinia",
+        "vue-router",
         {
-          'vue-router/auto': ['useRoute', 'useRouter']
-        }
+          "vue-router/auto": ["useRoute", "useRouter"],
+        },
       ],
       resolvers: [ElementPlusResolver()],
-      dts: 'src/auto-imports.d.ts',
+      dts: "src/auto-imports.d.ts",
       eslintrc: {
-        enabled: true
-      }
+        enabled: true,
+      },
     }),
 
     // Auto import components.
@@ -50,22 +50,22 @@ export default defineConfig({
     // first uses a new component.
     Components({
       resolvers: [ElementPlusResolver({ importStyle: false })],
-      dts: 'src/components.d.ts',
-      dirs: ['src/components']
+      dts: "src/components.d.ts",
+      dirs: ["src/components"],
     }),
 
-    UnoCSS()
+    UnoCSS(),
   ],
 
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
   },
 
   build: {
     // Target modern browsers (skip legacy transpilation)
-    target: 'esnext',
+    target: "esnext",
 
     // Enable minification (rolldown uses built-in minifier)
     minify: true,
@@ -80,25 +80,25 @@ export default defineConfig({
       output: {
         manualChunks: (id) => {
           // Split element-plus into separate chunk
-          if (id.includes('element-plus')) {
-            return 'element-plus'
+          if (id.includes("element-plus")) {
+            return "element-plus";
           }
           // Split echarts into separate chunk
-          if (id.includes('echarts')) {
-            return 'echarts'
+          if (id.includes("echarts")) {
+            return "echarts";
           }
           // Split core vendor libraries
           if (
-            id.includes('node_modules/vue/') ||
-            id.includes('node_modules/vue-router/') ||
-            id.includes('node_modules/pinia/')
+            id.includes("node_modules/vue/") ||
+            id.includes("node_modules/vue-router/") ||
+            id.includes("node_modules/pinia/")
           ) {
-            return 'vendor'
+            return "vendor";
           }
-        }
-      }
+        },
+      },
     },
-    chunkSizeWarningLimit: 1000
+    chunkSizeWarningLimit: 1000,
   },
 
   // Pre-bundle every third-party dep that admin actually imports, and turn
@@ -112,34 +112,34 @@ export default defineConfig({
   // found error in the terminal — easier to debug than a silent reload.
   optimizeDeps: {
     include: [
-      'vue',
-      'vue-router',
-      'pinia',
-      'element-plus',
-      'element-plus/es',
-      'axios',
-      'dayjs',
-      'chart.js',
-      'vue-chartjs'
+      "vue",
+      "vue-router",
+      "pinia",
+      "element-plus",
+      "element-plus/es",
+      "axios",
+      "dayjs",
+      "chart.js",
+      "vue-chartjs",
     ],
-    noDiscovery: true
+    noDiscovery: true,
   },
 
   // Enable caching for faster rebuilds
-  cacheDir: 'node_modules/.vite',
+  cacheDir: "node_modules/.vite",
 
   server: {
     port: 5174, // Different port from main UI (5173)
     proxy: {
       // Proxy admin API calls
-      '/admin/api': {
-        target: 'http://localhost:48888',
-        changeOrigin: true
+      "/admin/api": {
+        target: "http://localhost:48888",
+        changeOrigin: true,
       },
       // Proxy standard API calls (for admin token usage)
-      '/api': {
-        target: 'http://localhost:48888',
-        changeOrigin: true
+      "/api": {
+        target: "http://localhost:48888",
+        changeOrigin: true,
       },
       // KohakuHub public hf_hub-compatible URLs (no ``/api`` prefix).
       // The chain tester's Live real probe hits
@@ -150,18 +150,18 @@ export default defineConfig({
       // CHAIN_EXHAUSTED for non-existent reasons. Production (nginx →
       // backend, same origin) doesn't need this — the SPA shares
       // origin with the backend so requests arrive there directly.
-      '/models': {
-        target: 'http://localhost:48888',
-        changeOrigin: true
+      "/models": {
+        target: "http://localhost:48888",
+        changeOrigin: true,
       },
-      '/datasets': {
-        target: 'http://localhost:48888',
-        changeOrigin: true
+      "/datasets": {
+        target: "http://localhost:48888",
+        changeOrigin: true,
       },
-      '/spaces': {
-        target: 'http://localhost:48888',
-        changeOrigin: true
-      }
-    }
-  }
-})
+      "/spaces": {
+        target: "http://localhost:48888",
+        changeOrigin: true,
+      },
+    },
+  },
+});

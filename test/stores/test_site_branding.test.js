@@ -5,10 +5,10 @@ import {
   CACHE_KEY,
   DEFAULT_BRANDING,
   saveCachedBranding,
-} from "../../../src/shared/site-branding.js";
+} from "../../src/shared/site-branding.js";
 
 const mocks = vi.hoisted(() => ({ fetchBranding: vi.fn() }));
-vi.mock("../../../src/shared/site-branding.js", async (importOriginal) => ({
+vi.mock("../../src/shared/site-branding.js", async (importOriginal) => ({
   ...(await importOriginal()),
   fetchBranding: (...args) => mocks.fetchBranding(...args),
 }));

@@ -7,7 +7,7 @@ import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useSiteBrandingStore } from "@/stores/siteBranding";
-import { getGifLoop } from "../../../shared/site-branding.js";
+import { getGifLoop } from "../shared/site-branding.js";
 import {
   getSiteBranding,
   updateSiteBranding,
@@ -240,7 +240,8 @@ onMounted(loadBranding);
             />
             <p class="branding-help">
               Plain text, up to 2000 characters. Leave blank to hide the
-              description. Other KohakuHub introduction text is unchanged.
+              description. The site name and footer are saved for the public
+              site and Admin Portal.
             </p>
             <div>
               <el-button

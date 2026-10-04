@@ -4,7 +4,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ElementPlusStubs } from "../helpers/vue";
 import { useSiteBrandingStore } from "@/stores/siteBranding";
-import { CACHE_KEY } from "../../../src/shared/site-branding.js";
+import { CACHE_KEY } from "../../src/shared/site-branding.js";
 
 const mocks = vi.hoisted(() => ({
   router: { push: vi.fn() },
