@@ -100,4 +100,5 @@ jobs:
               test -s /usr/share/nginx/html/admin/index.html
               test -s /usr/share/doc/cheesecave-admin/LICENSE
               test -s /usr/share/doc/cheesecave-admin/LICENSING.md
+              test -s /usr/share/doc/cheesecave-admin/NOTICE.md
             '

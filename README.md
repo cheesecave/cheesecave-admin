@@ -77,3 +77,5 @@ The backend repository preserves the complete original Git commit history. The w
 CheeseCave derives from [KohakuHub by KohakuBlueLeaf](https://github.com/KohakuBlueleaf/KohakuHub) and [DeepGHS/KohakuHub](https://github.com/deepghs/KohakuHub). Original author credits, copyright notices and repository information are retained. CheeseCave is an independent derivative project.
 
 The original [LICENSE](LICENSE) and [LICENSING.md](LICENSING.md) texts are preserved, and core code retains AGPL-3.0 terms. Refer to those files for their applicable scope. This repository does not contain the website's Dataset Viewer implementation. The original README and changelog are retained in [provenance/](provenance/).
+
+See [dated notices](NOTICE.md) for attribution and modification notices.
