@@ -230,12 +230,16 @@ const STATS = {
   usage_percent: 0.42,
 };
 
+const mountedPages = [];
+
 function mountPage() {
-  return mount(FallbackSourcesPage, {
+  const wrapper = mount(FallbackSourcesPage, {
     global: {
       stubs,
     },
   });
+  mountedPages.push(wrapper);
+  return wrapper;
 }
 
 describe("admin fallback-sources page", () => {
@@ -267,6 +271,8 @@ describe("admin fallback-sources page", () => {
   });
 
   afterEach(() => {
+    // Dispose watchers on the shared chain state before the next case resets it.
+    mountedPages.splice(0).forEach((wrapper) => wrapper.unmount());
     vi.restoreAllMocks();
   });
 
@@ -2562,4 +2568,3 @@ describe("admin fallback-sources page", () => {
   });
 
 });
-
