@@ -14,6 +14,6 @@ LABEL org.opencontainers.image.title="CheeseCave Admin" \
 ENV BACKEND_UPSTREAM=http://hub-api:48888
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html/admin
-COPY LICENSE LICENSING.md /usr/share/doc/cheesecave-admin/
+COPY LICENSE LICENSING.md NOTICE.md /usr/share/doc/cheesecave-admin/
 COPY provenance/ /usr/share/doc/cheesecave-admin/provenance/
 EXPOSE 80

@@ -39,6 +39,8 @@ pnpm preview
 
 构建信息默认读取本仓库的 Git 提交；源代码压缩包或 Docker 构建可显式提供 `VITE_GIT_COMMIT` 与 `VITE_GIT_DIRTY`。继承的 CI 配置已在分仓库前移除，以上命令可直接在本地执行。
 
+已恢复按类别选择的[手动 CI 检查](docs/development/ci.md)，供以后另行授权执行；恢复配置本身不会触发运行。
+
 ## 容器与独立更新
 
 在本仓库构建镜像，以下示例使用 Bash：
@@ -75,3 +77,5 @@ docker compose up -d --no-deps hub-admin
 CheeseCave 源自 [KohakuBlueLeaf 的 KohakuHub](https://github.com/KohakuBlueleaf/KohakuHub) 与 [DeepGHS/KohakuHub](https://github.com/deepghs/KohakuHub)，保留原作者署名、版权及原仓库信息。CheeseCave 是独立衍生项目。
 
 原始 [LICENSE](LICENSE) 和 [LICENSING.md](LICENSING.md) 原文保留，核心代码沿用 AGPL-3.0，具体适用范围以这些文件为准。本仓库不包含主站的 Dataset Viewer 实现。原项目 README 和变更记录保存在 [provenance/](provenance/)。
+
+修改及署名声明见 [NOTICE.md](NOTICE.md)。

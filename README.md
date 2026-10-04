@@ -39,6 +39,8 @@ pnpm preview
 
 Build metadata normally reads this repository's Git commit. Source archives and Docker builds can explicitly supply `VITE_GIT_COMMIT` and `VITE_GIT_DIRTY`. Inherited CI configuration was removed before the repository split; the commands above run locally.
 
+Categorized [manual CI checks](docs/development/ci.md) are available for later authorized runs; restoring this configuration does not trigger them.
+
 ## Containers and independent updates
 
 Build an image from this repository. The following example uses Bash:
@@ -75,3 +77,5 @@ The backend repository preserves the complete original Git commit history. The w
 CheeseCave derives from [KohakuHub by KohakuBlueLeaf](https://github.com/KohakuBlueleaf/KohakuHub) and [DeepGHS/KohakuHub](https://github.com/deepghs/KohakuHub). Original author credits, copyright notices and repository information are retained. CheeseCave is an independent derivative project.
 
 The original [LICENSE](LICENSE) and [LICENSING.md](LICENSING.md) texts are preserved, and core code retains AGPL-3.0 terms. Refer to those files for their applicable scope. This repository does not contain the website's Dataset Viewer implementation. The original README and changelog are retained in [provenance/](provenance/).
+
+See [dated notices](NOTICE.md) for attribution and modification notices.
