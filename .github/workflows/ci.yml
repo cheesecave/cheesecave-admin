@@ -1,6 +1,9 @@
-name: Admin checks (manual)
+name: Admin checks
 
 on:
+  pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       category:
@@ -18,8 +21,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: admin-checks-${{ github.ref }}-${{ inputs.category }}
-  cancel-in-progress: false
+  group: admin-checks-${{ github.ref }}-${{ (inputs.category || 'all') }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CI: true
@@ -28,8 +31,8 @@ env:
 
 jobs:
   tests:
-    name: Vitest / ${{ inputs.category }}
-    if: inputs.category == 'all' || inputs.category == 'regression'
+    name: Vitest / ${{ (inputs.category || 'all') }}
+    if: (inputs.category || 'all') == 'all' || (inputs.category || 'all') == 'regression'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -52,7 +55,7 @@ jobs:
 
   build:
     name: Production build
-    if: inputs.category == 'all' || inputs.category == 'build'
+    if: (inputs.category || 'all') == 'all' || (inputs.category || 'all') == 'build'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -80,7 +83,7 @@ jobs:
 
   docker:
     name: Container build and static smoke checks
-    if: inputs.category == 'docker'
+    if: (inputs.category || 'all') == 'docker'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
