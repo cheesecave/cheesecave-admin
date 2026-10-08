@@ -28,3 +28,7 @@ coverage/
 *.sw?
 
 /docs/licensing-review*.md
+
+# Python bytecode (the publish-image test lives under test/deployment)
+__pycache__/
+*.pyc
