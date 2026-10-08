@@ -76,6 +76,6 @@ docker compose up -d --no-deps hub-admin
 
 CheeseCave 源自 [KohakuBlueLeaf 的 KohakuHub](https://github.com/KohakuBlueleaf/KohakuHub) 与 [DeepGHS/KohakuHub](https://github.com/deepghs/KohakuHub)，保留原作者署名、版权及原仓库信息。CheeseCave 是独立衍生项目。
 
-原始 [LICENSE](LICENSE) 和 [LICENSING.md](LICENSING.md) 原文保留，核心代码沿用 AGPL-3.0，具体适用范围以这些文件为准。本仓库不包含主站的 Dataset Viewer 实现。原项目 README 和变更记录保存在 [provenance/](provenance/)。
+原始 [LICENSE](LICENSE) 和 [LICENSING.md](LICENSING.md) 原文保留，核心代码沿用 AGPL-3.0，本仓库代码均适用 AGPL-3.0；原项目中唯一带独立许可证的组件 Dataset Viewer 已于 2026-10-08 从 CheeseCave 各仓库移除，详见 [NOTICE.md](NOTICE.md)。原项目 README 和变更记录保存在 [provenance/](provenance/)。
 
 修改及署名声明见 [NOTICE.md](NOTICE.md)。
