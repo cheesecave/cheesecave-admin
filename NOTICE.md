@@ -9,7 +9,7 @@ CheeseCave modifications dated 2026-10-04 include repository splitting and namin
 
 ## License scope
 
-All code in this repository is under the GNU Affero General Public License version 3; see [LICENSE](LICENSE). This repository never contained the Dataset Viewer; the component, which the other CheeseCave repositories carried under the separate Kohaku Software License 1.0, was removed from them on 2026-10-08. The historical [LICENSING.md](LICENSING.md) describes the original monorepo and is kept as the original upstream text for provenance.
+All code in this repository is under the GNU Affero General Public License version 3; see [LICENSE](LICENSE). This repository never contained the Dataset Viewer; the component, which the other CheeseCave repositories carried under the separate Kohaku Software License 1.0, was removed from them on 2026-10-08. The upstream licensing guide ([provenance/LICENSING.upstream.md](provenance/LICENSING.upstream.md)) describes the original monorepo and is kept as the original upstream text for provenance.
 
 ## Source and build information
 

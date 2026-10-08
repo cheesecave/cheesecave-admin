@@ -76,6 +76,6 @@ The backend repository preserves the complete original Git commit history. The w
 
 CheeseCave derives from [KohakuHub by KohakuBlueLeaf](https://github.com/KohakuBlueleaf/KohakuHub) and [DeepGHS/KohakuHub](https://github.com/deepghs/KohakuHub). Original author credits, copyright notices and repository information are retained. CheeseCave is an independent derivative project.
 
-The original [LICENSE](LICENSE) and [LICENSING.md](LICENSING.md) texts are preserved, and core code retains AGPL-3.0 terms. Everything in this repository is under AGPL-3.0; the Dataset Viewer, the only component that carried a separate license in the original project, was removed from the CheeseCave repositories on 2026-10-08 (see [NOTICE.md](NOTICE.md)). The original README and changelog are retained in [provenance/](provenance/).
+[LICENSE](LICENSE) is the AGPL-3.0 text and [LICENSING.md](LICENSING.md) states this fork's licence; the upstream guide is kept in [provenance/LICENSING.upstream.md](provenance/LICENSING.upstream.md), and core code retains AGPL-3.0 terms. Everything in this repository is under AGPL-3.0; the Dataset Viewer, the only component that carried a separate license in the original project, was removed from the CheeseCave repositories on 2026-10-08 (see [NOTICE.md](NOTICE.md)). The original README and changelog are retained in [provenance/](provenance/).
 
 See [dated notices](NOTICE.md) for attribution and modification notices.
