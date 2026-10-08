@@ -72,8 +72,6 @@ export default defineConfig({
         "src/components/tasks/taskFormat.js",
         "src/stores/admin.js",
         "src/stores/theme.js",
-        "src/utils/api.js",
-        "src/utils/clipboard.js",
       ],
       exclude: [
         "src/components.d.ts",

@@ -16,3 +16,17 @@ Keep commits focused and preserve unrelated edits. Use `fix:` or `feat:` commit
 subjects and the pull request template. Contributions to inherited AGPL code
 remain under that license; preserve original copyright notices and attribution.
 See [LICENSING.md](LICENSING.md) and [LICENSE](LICENSE).
+
+## Test and coverage scope
+
+**What runs.** The CI workflow starts only when application code, tests or build configuration
+change: `src/**` (except Markdown), `test/**`, `scripts/**`, the package and lock files, the Vite,
+Vitest and UnoCSS configuration, `index.html`, `nginx.conf`, the `Dockerfile` and the workflow itself.
+Documentation, images, `public/` assets and other resources do not start the test matrix.
+
+**What coverage measures.** Coverage counts the application's runtime code under `src/`: pages,
+components, stores, composables and the error model. It excludes:
+
+- tests, scripts and tooling (`scripts/`, build helpers, deployment and CI scripts);
+- generic utility modules under `src/utils/` (the coverage list omits them);
+- generated declarations, documentation, images and other resources.
