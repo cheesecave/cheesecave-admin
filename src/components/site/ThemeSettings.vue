@@ -5,6 +5,7 @@ import SiteActions from "./SiteActions.vue";
 import { useAppearanceSettings } from "./useAppearanceSettings.js";
 import { DEFAULT_THEME, normalizeTheme } from "../../shared/site-appearance.js";
 import { createThemePalette } from "../../shared/site-theme.js";
+import { MARKDOWN_STYLES } from "../../shared/markdown-styles.js";
 
 const {
   draft,
@@ -21,6 +22,9 @@ const {
     "Choose a default mode and use six-digit HEX colors, for example #94621f.",
 });
 const modes = ["light", "dark"];
+const styleIsListed = computed(() =>
+  MARKDOWN_STYLES.some((style) => style.id === draft.value.markdown_style),
+);
 const colors = [
   {
     key: "primary",
@@ -114,6 +118,25 @@ const previewStyles = computed(() =>
           </select>
           <p class="site-settings-help">
             Visitors can still choose their preferred mode.
+          </p>
+        </div>
+        <div class="site-settings-field mode-field">
+          <label for="theme-markdown-style">README style</label
+          ><select id="theme-markdown-style" v-model="draft.markdown_style">
+            <option v-if="!styleIsListed" :value="draft.markdown_style">
+              {{ draft.markdown_style }} (not in this admin build)
+            </option>
+            <option
+              v-for="style in MARKDOWN_STYLES"
+              :key="style.id"
+              :value="style.id"
+            >
+              {{ style.name }}
+            </option>
+          </select>
+          <p class="site-settings-help">
+            How READMEs and other Markdown look until a reader picks their own
+            in Settings.
           </p>
         </div>
         <div class="theme-columns">

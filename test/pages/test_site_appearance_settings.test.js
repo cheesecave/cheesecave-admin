@@ -8,6 +8,7 @@ import {
   FOOTER_ATTRIBUTION,
   DEFAULT_THEME,
 } from "../../src/shared/site-appearance.js";
+import { MARKDOWN_STYLES } from "../../src/shared/markdown-styles.js";
 import { DEFAULT_BRANDING } from "../../src/shared/site-branding.js";
 import { useSiteBrandingStore } from "@/stores/siteBranding";
 
@@ -268,6 +269,34 @@ describe("footer and theme administration", () => {
     expect(server.footer).toEqual(DEFAULT_FOOTER);
     expect(wrapper.get("#theme-primary-light").element.value).toBe("#aabbcc");
     expect(mocks.updateSiteBranding).not.toHaveBeenCalled();
+  });
+
+  it("offers every README style and saves the site's default alone", async () => {
+    await mountPanel(ThemeSettings);
+    const select = wrapper.get("#theme-markdown-style");
+    expect(select.element.value).toBe("github");
+    expect(
+      select.findAll("option").map((option) => option.element.value),
+    ).toEqual(MARKDOWN_STYLES.map((style) => style.id));
+    await select.setValue("gitlab");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(mocks.updateSiteAppearance).toHaveBeenCalledExactlyOnceWith(
+      "admin-token",
+      { theme: { markdown_style: "gitlab" } },
+    );
+    expect(server.theme.markdown_style).toBe("gitlab");
+  });
+
+  it("keeps a style this build does not list, and says so, instead of replacing it", async () => {
+    server.theme.markdown_style = "from-the-future";
+    await mountPanel(ThemeSettings);
+    const select = wrapper.get("#theme-markdown-style");
+    expect(select.element.value).toBe("from-the-future");
+    expect(select.text()).toContain(
+      "from-the-future (not in this admin build)",
+    );
+    expect(button("Save")?.attributes("disabled")).toBeDefined();
   });
 
   it("updates a HEX draft through its native color picker", async () => {
