@@ -358,7 +358,7 @@ onMounted(() => {
             <div class="text-blue-700 dark:text-blue-300">
               Set
               <code class="px-1 py-0.5 bg-blue-100 dark:bg-blue-900 rounded"
-                >KOHAKU_HUB_INVITATION_ONLY=true</code
+                >CHEESE_CAVE_INVITATION_ONLY=true</code
               >
               to disable public registration and require invitations.
             </div>
