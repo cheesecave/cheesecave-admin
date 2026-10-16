@@ -9,6 +9,8 @@ export const DEFAULT_THEME = Object.freeze({
   background_dark: "#1c211d",
   card_light: "#fffdf7",
   card_dark: "#282e27",
+  // The README style readers get until they choose their own (an id from the web app's style registry)
+  markdown_style: "github",
 });
 
 export const DEFAULT_FOOTER = Object.freeze({
@@ -60,7 +62,8 @@ export const FOOTER_ATTRIBUTION = Object.freeze({
   project_url: "https://github.com/deepghs/KohakuHub",
   upstream_label: "KohakuHub",
   upstream_url: "https://github.com/KohakuBlueleaf/KohakuHub",
-  copyright_text: "Derived from KohakuHub © 2025 KohakuBlueLeaf and contributors",
+  copyright_text:
+    "Derived from KohakuHub © 2025 KohakuBlueLeaf and contributors",
   license_label: "AGPL-3.0",
   license_url: "https://github.com/deepghs/KohakuHub/blob/main/LICENSE",
 });
@@ -147,6 +150,11 @@ export function normalizeTheme(value) {
     const supplied = Object.hasOwn(value, key) ? value[key] : fallback;
     if (key === "default_mode") {
       if (!["system", "light", "dark"].includes(supplied)) return null;
+      result[key] = supplied;
+    } else if (key === "markdown_style") {
+      // Which ids exist is the web app's business: a newer server may name a style this build lacks
+      if (typeof supplied !== "string" || !/^[a-z0-9-]{1,32}$/.test(supplied))
+        return null;
       result[key] = supplied;
     } else {
       if (typeof supplied !== "string" || !/^#[0-9a-f]{6}$/i.test(supplied)) {
