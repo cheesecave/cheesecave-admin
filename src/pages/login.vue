@@ -97,7 +97,7 @@ async function handleLogin() {
           <p class="text-sm">
             Admin token can be found in your environment configuration:
             <code class="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-              KOHAKU_HUB_ADMIN_SECRET_TOKEN
+              CHEESE_CAVE_ADMIN_SECRET_TOKEN
             </code>
           </p>
         </el-alert>

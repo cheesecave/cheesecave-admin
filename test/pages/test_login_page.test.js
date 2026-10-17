@@ -53,6 +53,13 @@ describe("admin login page", () => {
     return wrapper;
   }
 
+  it("tells the operator where the admin token lives under the current variable name", () => {
+    const wrapper = mountPage();
+
+    expect(wrapper.text()).toContain("CHEESE_CAVE_ADMIN_SECRET_TOKEN");
+    expect(wrapper.text()).not.toContain("KOHAKU_HUB_");
+  });
+
   it("follows site branding updates and recovers from a failed logo with the packaged default", async () => {
     const store = useSiteBrandingStore(pinia);
     const logo = (fill) =>
