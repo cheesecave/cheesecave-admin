@@ -441,6 +441,7 @@ onMounted(() => {
           </el-input>
           <el-switch
             v-model="showOrgs"
+            aria-label="Show organizations"
             @change="handleToggleOrganizations"
             active-text="Show Organizations"
             inactive-text="Users Only"

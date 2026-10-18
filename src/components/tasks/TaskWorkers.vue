@@ -103,6 +103,7 @@ function rowClass({ row }) {
       <el-table-column label="Load" width="130">
         <template #default="{ row }">
           <el-progress
+            aria-label="Worker load"
             :percentage="row.load"
             :show-text="false"
             :stroke-width="6"

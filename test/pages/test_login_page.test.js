@@ -53,6 +53,12 @@ describe("admin login page", () => {
     return wrapper;
   }
 
+  it("is the main landmark of the page", () => {
+    const wrapper = mountPage();
+
+    expect(wrapper.element.tagName).toBe("MAIN");
+  });
+
   it("tells the operator where the admin token lives under the current variable name", () => {
     const wrapper = mountPage();
 

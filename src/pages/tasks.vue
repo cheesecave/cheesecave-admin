@@ -370,6 +370,7 @@ onBeforeUnmount(stopTimer);
         <template #actions>
           <el-select
             v-model="refreshIntervalSeconds"
+            aria-label="Auto-refresh interval"
             class="refresh-select"
             placeholder="Auto-refresh"
             data-testid="tasks-refresh-interval"
@@ -444,6 +445,7 @@ onBeforeUnmount(stopTimer);
             <div class="flex gap-3 mb-4 flex-wrap">
               <el-select
                 v-model="filterStatus"
+                aria-label="Filter by status"
                 class="filter-select"
                 placeholder="Status"
                 data-testid="tasks-filter-status"
@@ -458,6 +460,7 @@ onBeforeUnmount(stopTimer);
               </el-select>
               <el-select
                 v-model="filterKind"
+                aria-label="Filter by kind"
                 class="filter-select"
                 placeholder="Kind"
                 data-testid="tasks-filter-kind"

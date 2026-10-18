@@ -232,6 +232,7 @@ onBeforeUnmount(() => {
         <template #actions>
           <el-select
             v-model="refreshIntervalSeconds"
+            aria-label="Auto-refresh interval"
             class="refresh-select"
             placeholder="Auto-refresh"
           >
