@@ -91,8 +91,8 @@ async function copy() {
   >
     <p class="text-sm mb-3">
       Creates a one-time link. Send it to {{ username }}; they choose their own
-      new password, so you never see it. Opening it signs them out everywhere
-      once they set it.
+      new password, so you never see it. Setting it signs them out of every
+      device.
     </p>
 
     <el-alert
