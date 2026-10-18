@@ -81,6 +81,7 @@ export default defineConfig({
         "src/composables/useCompactViewport.js",
         "src/utils/clipboard.js",
         "src/utils/form-rules.js",
+        "src/utils/login-redirect.js",
       ],
       exclude: [
         "src/components.d.ts",

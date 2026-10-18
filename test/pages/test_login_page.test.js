@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   router: {
     push: vi.fn(),
   },
+  route: { query: {} },
   adminStore: {
     login: vi.fn(),
   },
@@ -17,6 +18,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("vue-router", () => ({
   useRouter: () => mocks.router,
+  useRoute: () => mocks.route,
 }));
 
 vi.mock("@/stores/admin", () => ({
@@ -35,6 +37,7 @@ describe("admin login page", () => {
   const wrappers = [];
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.route.query = {};
     pinia = createPinia();
   });
   afterEach(() => {
@@ -128,6 +131,30 @@ describe("admin login page", () => {
     await flushPromises();
 
     expect(mocks.adminStore.login).toHaveBeenCalledWith("token-123");
+    expect(mocks.router.push).toHaveBeenCalledWith("/");
+  });
+
+  it("returns to the page the admin asked for after logging in", async () => {
+    mocks.adminStore.login.mockResolvedValue(true);
+    mocks.route.query = { redirect: "/users?page=2" };
+    const wrapper = mountPage();
+
+    await wrapper.get('input[placeholder="Admin Token"]').setValue("token-123");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+
+    expect(mocks.router.push).toHaveBeenCalledWith("/users?page=2");
+  });
+
+  it("ignores a redirect that leaves the admin portal", async () => {
+    mocks.adminStore.login.mockResolvedValue(true);
+    mocks.route.query = { redirect: "https://evil.example/" };
+    const wrapper = mountPage();
+
+    await wrapper.get('input[placeholder="Admin Token"]').setValue("token-123");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+
     expect(mocks.router.push).toHaveBeenCalledWith("/");
   });
 

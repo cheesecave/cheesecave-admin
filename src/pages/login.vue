@@ -1,12 +1,14 @@
 <script setup>
 import { getApiErrorMessage } from "@/utils/api-error";
 import { computed, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+import { safeRedirect } from "@/utils/login-redirect";
 import { useAdminStore } from "@/stores/admin";
 import { useSiteBrandingStore } from "@/stores/siteBranding";
 import { ElMessage } from "element-plus";
 
 const router = useRouter();
+const route = useRoute();
 const adminStore = useAdminStore();
 const siteBrandingStore = useSiteBrandingStore();
 const logoFailed = ref(false);
@@ -37,7 +39,7 @@ async function handleLogin() {
     const success = await adminStore.login(tokenInput.value);
     if (success) {
       ElMessage.success("Login successful");
-      router.push("/");
+      router.push(safeRedirect(route.query.redirect));
     } else {
       ElMessage.error("Invalid admin token");
       tokenInput.value = "";
