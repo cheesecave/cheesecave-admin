@@ -843,6 +843,33 @@ describe("admin API client", () => {
     _clearAllTraceCookies();
   });
 
+  it("reads, issues and withdraws password reset links", async () => {
+    const api = await loadModule();
+    client.get.mockResolvedValue({ data: { active: false } });
+    client.post.mockResolvedValue({ data: { url: "u" } });
+    client.delete.mockResolvedValue({ data: { revoked: 1 } });
+
+    expect(await api.getPasswordResetStatus("admin-token", "alice")).toEqual({
+      active: false,
+    });
+    expect(client.get).toHaveBeenCalledWith("/users/alice/password-reset-link");
+
+    expect(
+      await api.createPasswordResetLink("admin-token", "alice", "6h"),
+    ).toEqual({ url: "u" });
+    expect(client.post).toHaveBeenCalledWith(
+      "/users/alice/password-reset-link",
+      { ttl: "6h" },
+    );
+
+    expect(await api.revokePasswordResetLink("admin-token", "alice")).toEqual({
+      revoked: 1,
+    });
+    expect(client.delete).toHaveBeenCalledWith(
+      "/users/alice/password-reset-link",
+    );
+  });
+
   it("verifies admin tokens and formats quota sizes safely", async () => {
     const api = await loadModule();
 

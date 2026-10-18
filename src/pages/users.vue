@@ -5,6 +5,7 @@ import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
+import PasswordResetDialog from "@/components/users/PasswordResetDialog.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCompactViewport } from "@/composables/useCompactViewport";
 import {
@@ -29,6 +30,13 @@ const dialogVisible = ref(false);
 const userDialogVisible = ref(false);
 const quotaDialogVisible = ref(false);
 const selectedUser = ref(null);
+const resetDialogVisible = ref(false);
+const resetUser = ref("");
+
+function openPasswordReset(row) {
+  resetUser.value = row.username;
+  resetDialogVisible.value = true;
+}
 const quotaForm = ref({
   username: "",
   private_quota_bytes: null,
@@ -584,7 +592,7 @@ onMounted(() => {
           </el-table-column>
           <el-table-column
             label="Actions"
-            width="300"
+            width="420"
             :fixed="compact ? false : 'right'"
           >
             <template #default="{ row }">
@@ -600,6 +608,13 @@ onMounted(() => {
                 @click="handleToggleEmailVerification(row)"
               >
                 {{ row.email_verified ? "Unverify" : "Verify" }}
+              </el-button>
+              <el-button
+                v-if="!row.is_org"
+                size="small"
+                @click="openPasswordReset(row)"
+              >
+                Reset password
               </el-button>
               <el-button
                 size="small"
@@ -626,6 +641,13 @@ onMounted(() => {
           @current-change="loadUsers"
         />
       </el-card>
+
+      <PasswordResetDialog
+        v-if="resetUser"
+        v-model="resetDialogVisible"
+        :token="adminStore.token"
+        :username="resetUser"
+      />
 
       <!-- Create User Dialog -->
       <el-dialog
