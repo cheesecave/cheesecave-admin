@@ -143,6 +143,12 @@ describe("AdminLayout", () => {
     expect(mocks.siteBrandingStore.setPageTitle).not.toHaveBeenCalled();
   });
 
+  it("marks the top bar as the banner landmark", () => {
+    const wrapper = mountLayout();
+
+    expect(wrapper.get("[data-el-header]").attributes("role")).toBe("banner");
+  });
+
   it("renders the admin navigation, opens global search, and toggles theme", async () => {
     const wrapper = mountLayout();
 

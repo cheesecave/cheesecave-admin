@@ -971,7 +971,7 @@ onMounted(async () => {
         </p>
 
         <!-- Probe target / op -->
-        <h3 class="tester-section-title">Probe target</h3>
+        <h2 class="tester-section-title">Probe target</h2>
         <el-form :model="probeForm" label-width="120px" class="tester-form">
           <div class="tester-grid">
             <el-form-item label="Op" required>
@@ -1089,12 +1089,12 @@ onMounted(async () => {
             <div class="tester-frame-grid">
               <!-- Left: system state (draft sources editor) -->
               <div class="tester-frame-col">
-                <h3 class="tester-section-title">
+                <h2 class="tester-section-title">
                   System state — draft sources
                   <span class="tester-section-hint">
                     ({{ draftSources.length }} source{{ draftSources.length === 1 ? "" : "s" }})
                   </span>
-                </h3>
+                </h2>
                 <div class="tester-empty" v-if="draftSources.length === 0">
                   Draft is empty. Click
                   <strong>Load from System</strong> above to seed it with
@@ -1175,6 +1175,7 @@ onMounted(async () => {
                       <el-button
                         size="small"
                         type="danger"
+                        aria-label="Remove draft source"
                         @click="removeDraftSource(idx)"
                         :data-testid="`draft-remove-${idx}`"
                       >
@@ -1229,7 +1230,7 @@ onMounted(async () => {
 
               <!-- Right: user state (impersonation + token overlay) -->
               <div class="tester-frame-col">
-                <h3 class="tester-section-title">User state — identity</h3>
+                <h2 class="tester-section-title">User state — identity</h2>
                 <p class="tester-section-hint">
                   Impersonate which user the probe runs as. Anonymous
                   is a public caller; by-username / by-user_id load
@@ -1266,7 +1267,7 @@ onMounted(async () => {
                   </el-form-item>
                 </el-form>
 
-                <h4 class="tester-subsection-title">
+                <h3 class="tester-subsection-title">
                   Per-URL token overrides
                   <span class="tester-section-hint">
                     (Authorization-header-style overrides applied on
@@ -1274,7 +1275,7 @@ onMounted(async () => {
                     wins on URL collision, mirroring production's
                     <code>get_merged_external_tokens</code>)
                   </span>
-                </h4>
+                </h3>
                 <div
                   v-if="simHeaderTokens.length === 0"
                   class="tester-empty"
@@ -1326,7 +1327,7 @@ onMounted(async () => {
             </div>
 
             <!-- Run + results (simulate) -->
-            <h3 class="tester-section-title">Run simulate</h3>
+            <h2 class="tester-section-title">Run simulate</h2>
             <div class="run-buttons">
               <el-button
                 type="primary"
@@ -1380,13 +1381,13 @@ onMounted(async () => {
             <div class="tester-frame-grid">
               <!-- Left: system state (live config, read-only) -->
               <div class="tester-frame-col">
-                <h3 class="tester-section-title">
+                <h2 class="tester-section-title">
                   System state — live config
                   <span class="tester-section-hint">
                     (read-only summary of the {{ sources.length }}
                     currently-applied source{{ sources.length === 1 ? "" : "s" }})
                   </span>
-                </h3>
+                </h2>
                 <div class="tester-empty" v-if="sources.length === 0">
                   No sources currently applied. Configure them in the
                   <strong>Configured Sources</strong>
@@ -1434,7 +1435,7 @@ onMounted(async () => {
 
               <!-- Right: user state (admin's khub token + per-URL tokens) -->
               <div class="tester-frame-col">
-                <h3 class="tester-section-title">User state — Authorization</h3>
+                <h2 class="tester-section-title">User state — Authorization</h2>
                 <p class="tester-section-hint">
                   The probe sends a real request to this instance with
                   these credentials encoded into a single
@@ -1458,14 +1459,14 @@ onMounted(async () => {
                     />
                   </el-form-item>
                 </el-form>
-                <h4 class="tester-subsection-title">
+                <h3 class="tester-subsection-title">
                   Per-URL fallback tokens
                   <span class="tester-section-hint">
                     (encoded into the
                     <code>|url,token|...</code>
                     segments of the Authorization header)
                   </span>
-                </h4>
+                </h3>
                 <div
                   v-if="realHeaderTokens.length === 0"
                   class="tester-empty"
@@ -1517,7 +1518,7 @@ onMounted(async () => {
             </div>
 
             <!-- Run + results (real) -->
-            <h3 class="tester-section-title">Run real request</h3>
+            <h2 class="tester-section-title">Run real request</h2>
             <div class="run-buttons">
               <el-button
                 type="primary"
@@ -1587,7 +1588,7 @@ onMounted(async () => {
           >
             <div class="source-header">
               <div class="source-title">
-                <h3>{{ source.name }}</h3>
+                <h2>{{ source.name }}</h2>
                 <div class="badges">
                   <el-tag
                     :type="
@@ -1622,6 +1623,7 @@ onMounted(async () => {
                 <el-button
                   type="primary"
                   size="small"
+                  aria-label="Edit source"
                   @click="openEditDialog(source)"
                   :loading="loading"
                 >
@@ -1630,6 +1632,7 @@ onMounted(async () => {
                 <el-button
                   type="danger"
                   size="small"
+                  aria-label="Delete source"
                   @click="handleDelete(source)"
                   :loading="loading"
                 >
@@ -1951,7 +1954,7 @@ onMounted(async () => {
   margin-bottom: 12px;
 }
 
-.source-title h3 {
+.source-title h2 {
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 8px 0;

@@ -142,6 +142,7 @@ onBeforeUnmount(() => clearTimeout(timer));
           <span class="text-gray-500">{{ task.stage }}</span>
         </div>
         <el-progress
+          aria-label="LFS reconciliation progress"
           :percentage="percent"
           :status="task.status === 'succeeded' ? 'success' : undefined"
         />

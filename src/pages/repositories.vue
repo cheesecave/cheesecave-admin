@@ -456,6 +456,7 @@ onMounted(() => {
           <el-form-item label="Repository Type" class="mb-0">
             <el-select
               v-model="filterRepoType"
+              aria-label="Repository type"
               placeholder="All Types"
               clearable
               style="width: 150px"

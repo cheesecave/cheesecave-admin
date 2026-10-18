@@ -202,7 +202,13 @@ onMounted(() => {
               </div>
             </template>
 
-            <div v-loading="loadingTables" class="tables-list">
+            <div
+              v-loading="loadingTables"
+              class="tables-list"
+              role="region"
+              aria-label="Database tables"
+              tabindex="0"
+            >
               <div
                 v-for="table in tables"
                 :key="table.name"
@@ -246,7 +252,12 @@ onMounted(() => {
               </div>
             </template>
 
-            <div class="templates-list">
+            <div
+              class="templates-list"
+              role="region"
+              aria-label="Query templates"
+              tabindex="0"
+            >
               <div
                 v-for="template in templates"
                 :key="template.name"

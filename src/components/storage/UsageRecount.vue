@@ -155,6 +155,7 @@ onBeforeUnmount(() => clearTimeout(timer));
           <span class="text-gray-500">{{ task.stage }}</span>
         </div>
         <el-progress
+          aria-label="Usage recount progress"
           :percentage="percent"
           :status="task.status === 'succeeded' ? 'success' : undefined"
         />

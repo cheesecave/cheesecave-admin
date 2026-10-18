@@ -223,6 +223,7 @@ onUnmounted(() => {
           <!-- Progress Bar -->
           <el-progress
             v-if="quotaInfo.private_quota_bytes !== null"
+            aria-label="Private storage used"
             :percentage="Math.min(quotaInfo.private_percentage_used || 0, 100)"
             :status="
               quotaInfo.private_percentage_used > 90
@@ -265,6 +266,7 @@ onUnmounted(() => {
           <!-- Progress Bar -->
           <el-progress
             v-if="quotaInfo.public_quota_bytes !== null"
+            aria-label="Public storage used"
             :percentage="Math.min(quotaInfo.public_percentage_used || 0, 100)"
             :status="
               quotaInfo.public_percentage_used > 90
