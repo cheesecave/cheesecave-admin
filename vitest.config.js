@@ -77,6 +77,7 @@ export default defineConfig({
         "src/stores/theme.js",
         "src/utils/api.js",
         "src/utils/clipboard.js",
+        "src/utils/login-redirect.js",
       ],
       exclude: [
         "src/components.d.ts",
