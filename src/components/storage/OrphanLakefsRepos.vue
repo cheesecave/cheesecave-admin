@@ -101,7 +101,7 @@ function formatCreated(value) {
             LakeFS repositories no repository points at. Purging deletes the
             LakeFS repository and its S3 prefix in a background task; follow it
             under
-            <router-link to="/tasks" class="text-blue-600"
+            <router-link to="/tasks" class="text-blue-600 dark:text-blue-400"
               >Background Tasks</router-link
             >.
           </div>

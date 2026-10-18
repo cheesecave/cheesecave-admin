@@ -85,7 +85,7 @@ onBeforeUnmount(() => clearTimeout(timer));
             collection keeps it, and corrects the default branch's file rows. It
             only adds or corrects rows: running it again changes nothing. Follow
             it under
-            <router-link to="/tasks" class="text-blue-600"
+            <router-link to="/tasks" class="text-blue-600 dark:text-blue-400"
               >Background Tasks</router-link
             >.
           </div>

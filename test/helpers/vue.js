@@ -296,7 +296,7 @@ export const ElementPlusStubs = {
                           : String(vnode.props.fixed),
                     },
                     vnode.children && vnode.children.default
-                      ? vnode.children.default({ row })
+                      ? vnode.children.default({ row, $index: index })
                       : String(row[vnode.props.prop] ?? ""),
                   )
                 : null,

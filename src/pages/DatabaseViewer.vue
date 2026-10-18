@@ -315,7 +315,7 @@ onMounted(() => {
                 Only SELECT queries allowed. Max 1000 rows. Use LIMIT clause for
                 better performance.
               </div>
-              <div class="text-xs text-orange-600 dark:text-orange-400">
+              <div class="text-xs text-orange-700 dark:text-orange-400">
                 <div class="i-carbon-warning inline-block mr-1" />
                 <strong>Important:</strong> Use double quotes for table names
                 with reserved keywords:

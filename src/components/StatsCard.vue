@@ -47,41 +47,27 @@ const colorClasses = {
 </script>
 
 <template>
-  <el-card shadow="hover" class="stat-card-wrapper">
-    <div class="stat-card" :class="colorClasses[color]">
-      <div :class="icon" class="stat-icon text-5xl mb-3 opacity-80" />
-      <div class="stat-value text-5xl font-bold mb-2">{{ value }}</div>
-      <div class="stat-title text-lg opacity-90 mb-2">
-        {{ title }}
-      </div>
-      <div class="stat-subtitle text-sm opacity-75" :aria-hidden="!subtitle">
-        {{ subtitle }}
-      </div>
+  <div class="stat-card" :class="colorClasses[color]">
+    <div :class="icon" class="stat-icon text-5xl mb-3 opacity-80" />
+    <div class="stat-value text-5xl font-bold mb-2">{{ value }}</div>
+    <div class="stat-title text-lg mb-2">
+      {{ title }}
     </div>
-  </el-card>
+    <div class="stat-subtitle text-sm" :aria-hidden="!subtitle">
+      {{ subtitle }}
+    </div>
+  </div>
 </template>
 
 <style scoped>
-.stat-card-wrapper {
-  display: flex;
-  min-width: 0;
-  margin-bottom: 0;
-  transition: transform 0.2s;
-}
-
-.stat-card-wrapper :deep(.el-card__body) {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-}
-
-.stat-card-wrapper:hover {
-  transform: translateY(-4px);
-}
-
 .stat-card {
   container-type: inline-size;
   display: flex;
+  min-width: 0;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   flex: 1;
   flex-direction: column;
   align-items: center;
@@ -95,6 +81,11 @@ const colorClasses = {
     var(--tw-gradient-from),
     var(--tw-gradient-to)
   );
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-icon {
@@ -120,52 +111,53 @@ const colorClasses = {
   overflow-wrap: anywhere;
 }
 
+/* Gradients are one step darker than the usual 500/600 pair so the white text reads (AA, 4.5:1). */
 .from-blue-500 {
-  --tw-gradient-from: #3b82f6;
+  --tw-gradient-from: #2563eb;
 }
 .to-blue-600 {
-  --tw-gradient-to: #2563eb;
+  --tw-gradient-to: #1d4ed8;
 }
 
 .from-purple-500 {
-  --tw-gradient-from: #a855f7;
+  --tw-gradient-from: #9333ea;
 }
 .to-purple-600 {
-  --tw-gradient-to: #9333ea;
+  --tw-gradient-to: #7e22ce;
 }
 
 .from-green-500 {
-  --tw-gradient-from: #22c55e;
+  --tw-gradient-from: #15803d;
 }
 .to-green-600 {
-  --tw-gradient-to: #16a34a;
+  --tw-gradient-to: #166534;
 }
 
 .from-orange-500 {
-  --tw-gradient-from: #f97316;
+  --tw-gradient-from: #c2410c;
 }
 .to-orange-600 {
-  --tw-gradient-to: #ea580c;
+  --tw-gradient-to: #9a3412;
 }
 
 .from-cyan-500 {
-  --tw-gradient-from: #06b6d4;
+  --tw-gradient-from: #0e7490;
 }
 .to-cyan-600 {
-  --tw-gradient-to: #0891b2;
+  --tw-gradient-to: #155e75;
 }
 
 .from-pink-500 {
-  --tw-gradient-from: #ec4899;
+  --tw-gradient-from: #be185d;
 }
 .to-pink-600 {
-  --tw-gradient-to: #db2777;
+  --tw-gradient-to: #9d174d;
 }
 
 .from-red-500 {
-  --tw-gradient-from: #ef4444;
+  --tw-gradient-from: #b91c1c;
 }
 .to-red-600 {
-  --tw-gradient-to: #dc2626;
+  --tw-gradient-to: #991b1b;
 }
 </style>
