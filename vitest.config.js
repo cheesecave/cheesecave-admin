@@ -79,6 +79,7 @@ export default defineConfig({
         "src/stores/theme.js",
         "src/utils/api.js",
         "src/utils/clipboard.js",
+        "src/utils/form-rules.js",
       ],
       exclude: [
         "src/components.d.ts",
