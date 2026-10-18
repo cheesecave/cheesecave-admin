@@ -4,15 +4,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ElementPlusStubs } from "../helpers/vue";
 
-// Every API call answers an empty object: these tests only look at the markup
-// the pages draw around controls that have no visible text.
+// Every API call fails: the pages keep their empty initial state and draw their
+// controls, which is all these tests look at.
 vi.mock("@/utils/api", async (importOriginal) => {
   const real = await importOriginal();
   return Object.fromEntries(
     Object.entries(real).map(([name, value]) => [
       name,
       typeof value === "function" && name !== "formatBytes"
-        ? vi.fn(async () => ({}))
+        ? vi.fn(async () => {
+            throw new Error("offline");
+          })
         : value,
     ]),
   );
