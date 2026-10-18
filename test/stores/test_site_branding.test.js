@@ -35,6 +35,46 @@ describe("admin branding store", () => {
     expect(store.branding.site_name).toBe("Cached Hub");
   });
 
+  it("puts the page name first in the tab title and keeps it through branding changes", async () => {
+    const store = useSiteBrandingStore(pinia);
+    store.setPageTitle("Users");
+    expect(store.pageTitle).toBe("Users");
+    expect(document.title).toBe("Users · CheeseCave Admin Portal");
+
+    await store.refresh();
+    expect(document.title).toBe("Users · Server Hub Admin Portal");
+
+    saveCachedBranding({ ...DEFAULT_BRANDING, site_name: "Other Tab" });
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: CACHE_KEY,
+        newValue: localStorage.getItem(CACHE_KEY),
+      }),
+    );
+    expect(document.title).toBe("Users · Other Tab Admin Portal");
+
+    store.setPageTitle("");
+    expect(store.pageTitle).toBe("");
+    expect(document.title).toBe("Other Tab Admin Portal");
+  });
+
+  it("refuses an invalid branding payload and ignores storage events of other keys", () => {
+    const store = useSiteBrandingStore(pinia);
+    expect(() => store.apply({ site_name: 42 })).toThrow(
+      "Invalid site branding response",
+    );
+
+    store.apply({ ...DEFAULT_BRANDING, site_name: "Saved Hub" });
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: "unrelated", newValue: "x" }),
+    );
+    expect(store.branding.site_name).toBe("Saved Hub");
+
+    // The cache being cleared (key null, no value) goes back to the packaged defaults.
+    window.dispatchEvent(new StorageEvent("storage", { key: null }));
+    expect(store.branding).toEqual(DEFAULT_BRANDING);
+  });
+
   it("retains packaged defaults when there is no cache and the backend fails", async () => {
     mocks.fetchBranding.mockRejectedValue(new Error("Offline"));
     const store = useSiteBrandingStore(pinia);

@@ -13,7 +13,20 @@ import {
 
 export const useSiteBrandingStore = defineStore("siteBranding", () => {
   const branding = ref(readCachedBranding());
+  const pageTitle = ref("");
   let revision = 0;
+
+  function applyToDocument() {
+    applyDocumentBranding(branding.value, {
+      admin: true,
+      page: pageTitle.value,
+    });
+  }
+
+  function setPageTitle(title) {
+    pageTitle.value = title;
+    applyToDocument();
+  }
 
   function apply(value) {
     const next = normalizeBranding(value);
@@ -21,7 +34,7 @@ export const useSiteBrandingStore = defineStore("siteBranding", () => {
     revision += 1;
     branding.value = next;
     saveCachedBranding(next);
-    applyDocumentBranding(next, { admin: true });
+    applyToDocument();
   }
 
   async function refresh() {
@@ -40,14 +53,14 @@ export const useSiteBrandingStore = defineStore("siteBranding", () => {
     if (!next && event.newValue !== null) return;
     revision += 1;
     branding.value = next || { ...DEFAULT_BRANDING };
-    applyDocumentBranding(branding.value, { admin: true });
+    applyToDocument();
   }
 
   window.addEventListener("storage", handleStorage);
   onScopeDispose(() => window.removeEventListener("storage", handleStorage));
-  applyDocumentBranding(branding.value, { admin: true });
+  applyToDocument();
 
-  return { branding, apply, refresh };
+  return { branding, pageTitle, apply, refresh, setPageTitle };
 });
 
 if (import.meta.hot) {

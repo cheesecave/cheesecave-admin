@@ -40,7 +40,6 @@ declare module 'vue' {
     FileTree: typeof import('./components/FileTree.vue')['default']
     FooterSettings: typeof import('./components/site/FooterSettings.vue')['default']
     GlobalSearch: typeof import('./components/GlobalSearch.vue')['default']
-    HelloWorld: typeof import('./components/HelloWorld.vue')['default']
     HomepageSettings: typeof import('./components/site/HomepageSettings.vue')['default']
     ProbeReportView: typeof import('./components/ProbeReportView.vue')['default']
     QuotaManager: typeof import('./components/QuotaManager.vue')['default']

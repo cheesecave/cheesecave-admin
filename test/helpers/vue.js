@@ -79,6 +79,9 @@ export const ElementPlusStubs = {
     setup(props, { slots, emit }) {
       return () =>
         h("div", { "data-el-input": "true" }, [
+          slots.prefix
+            ? h("span", { "data-slot": "prefix" }, slots.prefix())
+            : null,
           slots.prepend
             ? h("span", { "data-slot": "prepend" }, slots.prepend())
             : null,

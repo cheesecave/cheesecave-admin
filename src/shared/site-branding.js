@@ -297,10 +297,14 @@ export function saveCachedBranding(value) {
   }
 }
 
-export function applyDocumentBranding(value, { admin = false } = {}) {
+export function applyDocumentBranding(
+  value,
+  { admin = false, page = "" } = {},
+) {
   const branding = normalizeBranding(value);
   if (!branding || typeof document === "undefined") return;
-  document.title = `${branding.site_name}${admin ? " Admin Portal" : ""}`;
+  const site = `${branding.site_name}${admin ? " Admin Portal" : ""}`;
+  document.title = page ? `${page} · ${site}` : site;
   const base = admin ? "/admin" : "";
   for (const [rel, fallback] of [
     ["icon", `${base}/favicon.svg`],
