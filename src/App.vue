@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { ElConfigProvider } from "element-plus";
 import { useAdminStore } from "@/stores/admin";
 import { useThemeStore } from "@/stores/theme";
 import { loginLocation } from "@/utils/login-redirect";
@@ -28,7 +29,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <router-view />
+  <!-- Messages appear 72 px from the top: below the 60 px top bar, not over its title. -->
+  <el-config-provider :message="{ offset: 72 }">
+    <router-view />
+  </el-config-provider>
 </template>
 
 <style>

@@ -92,7 +92,7 @@ onBeforeUnmount(() => clearTimeout(timer));
             every repository's usage from what it holds and reports how far the
             kept numbers had drifted. It runs once after upgrading; follow it
             under
-            <router-link to="/tasks" class="text-blue-600"
+            <router-link to="/tasks" class="text-blue-600 dark:text-blue-400"
               >Background Tasks</router-link
             >.
           </div>

@@ -242,7 +242,12 @@ onMounted(() => {
           </div>
         </template>
 
+        <el-empty
+          v-if="!loading && filteredInvitations.length === 0"
+          description="No invitations found"
+        />
         <el-table
+          v-else
           :data="filteredInvitations"
           v-loading="loading"
           stripe
@@ -332,11 +337,6 @@ onMounted(() => {
             </template>
           </el-table-column>
         </el-table>
-
-        <el-empty
-          v-if="!loading && filteredInvitations.length === 0"
-          description="No invitations found"
-        />
       </el-card>
 
       <!-- Info Card -->

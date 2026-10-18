@@ -121,9 +121,16 @@ function handleTabKey(event, index) {
   .site-tab-panel {
     padding: 16px;
   }
+  /* All four tabs stay visible on a phone (two rows) instead of scrolling out of sight. */
   .site-tabs {
     margin: 16px 16px 0;
     max-width: calc(100% - 32px);
+    width: auto;
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+  .site-tabs button {
+    flex: 1 1 calc(50% - 4px);
   }
 }
 </style>

@@ -1,5 +1,6 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, h } from "vue";
+import { ElConfigProvider } from "element-plus";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -67,6 +68,15 @@ describe("App shell", () => {
 
     expect(mocks.themeStore.init).toHaveBeenCalledTimes(1);
     expect(mocks.router.push).toHaveBeenCalledWith({ path: "/login" });
+    expect(wrapper.find('[data-router-view="true"]').exists()).toBe(true);
+  });
+
+  it("keeps toast messages below the 60 px top bar so they do not cover its title", () => {
+    const wrapper = mountApp();
+
+    expect(
+      wrapper.getComponent(ElConfigProvider).props("message").offset,
+    ).toBeGreaterThanOrEqual(72);
     expect(wrapper.find('[data-router-view="true"]').exists()).toBe(true);
   });
 

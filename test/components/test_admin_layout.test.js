@@ -149,6 +149,21 @@ describe("AdminLayout", () => {
     expect(wrapper.get("[data-el-header]").attributes("role")).toBe("banner");
   });
 
+  it.each([
+    [false, "#1d5bd1"],
+    [true, "#409EFF"],
+  ])(
+    "draws the selected menu entry in a colour that reads on the theme (dark=%s)",
+    (isDark, colour) => {
+      mocks.themeStore.isDark = isDark;
+      const wrapper = mountLayout();
+
+      expect(
+        wrapper.get("[data-el-menu]").attributes("data-active-text-color"),
+      ).toBe(colour);
+    },
+  );
+
   it("renders the admin navigation, opens global search, and toggles theme", async () => {
     const wrapper = mountLayout();
 

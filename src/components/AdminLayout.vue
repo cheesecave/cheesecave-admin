@@ -227,7 +227,7 @@ watch(
             class="sidebar-menu"
             :background-color="themeStore.isDark ? '#1f1f1f' : '#ffffff'"
             :text-color="themeStore.isDark ? '#e0e0e0' : '#303133'"
-            :active-text-color="'#409EFF'"
+            :active-text-color="themeStore.isDark ? '#409EFF' : '#1d5bd1'"
           >
             <el-menu-item
               v-for="item in menuItems"
