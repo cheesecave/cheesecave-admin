@@ -20,6 +20,8 @@ watch(
   () => (logoFailed.value = false),
 );
 
+siteBrandingStore.setPageTitle("Sign in");
+
 const tokenInput = ref("");
 const loading = ref(false);
 
@@ -75,10 +77,11 @@ async function handleLogin() {
             type="password"
             placeholder="Admin Token"
             size="large"
-            :prefix-icon="'Lock'"
             show-password
             autocomplete="off"
-          />
+          >
+            <template #prefix><div class="i-carbon-locked" /></template>
+          </el-input>
         </el-form-item>
 
         <el-button

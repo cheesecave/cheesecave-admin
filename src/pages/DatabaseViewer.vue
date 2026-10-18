@@ -89,14 +89,6 @@ async function executeQuery() {
     );
     queryResults.value = result;
 
-    // Debug logging
-    console.log("Query results:", {
-      columns: result.columns,
-      columnCount: result.columns.length,
-      rowCount: result.count,
-      firstRow: result.rows[0],
-    });
-
     if (result.truncated) {
       ElMessage.warning(
         "Results truncated to 1000 rows. Please add LIMIT to your query.",

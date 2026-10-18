@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   },
   siteBrandingStore: {
     branding: { site_name: "DeepGHS Hub", header_logo: null },
+    setPageTitle: vi.fn(),
   },
   globalSearch: {
     openDialog: vi.fn(),
@@ -117,6 +118,31 @@ describe("AdminLayout", () => {
     expect(version.find("a").exists()).toBe(false);
   });
 
+  it.each([
+    ["/", "Dashboard"],
+    ["/repositories", "Repositories"],
+    ["/QuotaOverview", "Quota Overview"],
+    ["/tasks", "Background Tasks"],
+  ])("names the browser tab after the menu entry of %s", (path, label) => {
+    mocks.route.path = path;
+    mountLayout();
+
+    expect(mocks.siteBrandingStore.setPageTitle).toHaveBeenCalledWith(label);
+  });
+
+  it("follows a sub-page to the menu entry it belongs to and leaves unlisted paths alone", () => {
+    mocks.route.path = "/users/someone";
+    mountLayout();
+    expect(mocks.siteBrandingStore.setPageTitle).toHaveBeenLastCalledWith(
+      "Users",
+    );
+
+    vi.clearAllMocks();
+    mocks.route.path = "/not-in-the-menu";
+    mountLayout();
+    expect(mocks.siteBrandingStore.setPageTitle).not.toHaveBeenCalled();
+  });
+
   it("renders the admin navigation, opens global search, and toggles theme", async () => {
     const wrapper = mountLayout();
 
@@ -127,7 +153,9 @@ describe("AdminLayout", () => {
     expect(wrapper.get('[data-index="/site"]').text()).toBe("Site");
     expect(wrapper.find('[data-index="/homepage"]').exists()).toBe(false);
     expect(wrapper.text()).toContain("DeepGHS Hub Administration");
-    expect(wrapper.get("h1").attributes("title")).toBe(
+    // The page header owns the single <h1> of each page.
+    expect(wrapper.find("h1").exists()).toBe(false);
+    expect(wrapper.get(".header-title-text").attributes("title")).toBe(
       "DeepGHS Hub Administration",
     );
     expect(wrapper.find('[data-index="/site-branding"]').exists()).toBe(false);

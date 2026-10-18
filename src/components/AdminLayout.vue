@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAdminStore } from "@/stores/admin";
 import { useThemeStore } from "@/stores/theme";
@@ -152,6 +152,24 @@ const menuItems = [
     icon: "i-carbon-data-table",
   },
 ];
+
+// Name the browser tab after the menu entry the current path belongs to; a
+// sub-page such as /users/x belongs to /users. Pages outside the menu name
+// themselves.
+watch(
+  () => route.path,
+  (path) => {
+    const entry = menuItems
+      .filter(
+        (item) =>
+          item.path === path ||
+          (item.path !== "/" && path.startsWith(`${item.path}/`)),
+      )
+      .sort((a, b) => b.path.length - a.path.length)[0];
+    if (entry) siteBrandingStore.setPageTitle(entry.label);
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -279,12 +297,12 @@ const menuItems = [
           <span class="i-carbon-menu" aria-hidden="true" />
         </button>
         <div class="header-title">
-          <h1
-            class="text-xl font-semibold text-gray-900 dark:text-gray-100"
+          <div
+            class="header-title-text text-xl font-semibold text-gray-900 dark:text-gray-100"
             :title="`${siteBrandingStore.branding.site_name} Administration`"
           >
             {{ siteBrandingStore.branding.site_name }} Administration
-          </h1>
+          </div>
         </div>
 
         <div class="header-actions">
@@ -489,7 +507,7 @@ const menuItems = [
   padding-right: 12px;
 }
 
-.header-title h1 {
+.header-title-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -591,7 +609,7 @@ const menuItems = [
     padding-right: 0;
   }
 
-  .header-title h1 {
+  .header-title-text {
     font-size: 15px;
   }
 

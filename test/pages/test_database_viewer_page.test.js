@@ -111,6 +111,29 @@ describe("admin database viewer page", () => {
     ).toBe(true);
   });
 
+  it("runs a query without writing its results to the browser console", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    mocks.api.executeDatabaseQuery.mockResolvedValue({
+      columns: ["id"],
+      rows: [[1]],
+      count: 1,
+      truncated: false,
+    });
+    const page = mountPage();
+    await flushPromises();
+
+    await page.get(".sql-editor input").setValue("SELECT 1;");
+    await getExecuteButton(page).trigger("click");
+    await flushPromises();
+
+    expect(mocks.api.executeDatabaseQuery).toHaveBeenCalledWith(
+      "admin-token",
+      "SELECT 1;",
+    );
+    expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+
   it("closes the notice without removing the header, query text, or editor actions", async () => {
     const page = mountPage();
     await flushPromises();

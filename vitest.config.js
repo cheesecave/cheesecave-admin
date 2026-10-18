@@ -59,6 +59,8 @@ export default defineConfig({
         "src/pages/fallback-sources.vue",
         "src/pages/health.vue",
         "src/pages/login.vue",
+        "src/pages/\\[...path\\].vue",
+        "src/stores/siteBranding.js",
         "src/pages/tasks.vue",
         "src/components/tasks/TaskOverview.vue",
         "src/components/tasks/TaskTimeline.vue",

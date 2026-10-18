@@ -95,6 +95,21 @@ describe("admin login page", () => {
     );
   });
 
+  it("draws the lock icon in the token field as an icon class, not an unknown <lock> element", () => {
+    const wrapper = mountPage();
+
+    expect(wrapper.find('[data-slot="prefix"] .i-carbon-locked').exists()).toBe(
+      true,
+    );
+    expect(wrapper.find("lock").exists()).toBe(false);
+  });
+
+  it("names the page for the browser tab", () => {
+    mountPage();
+
+    expect(useSiteBrandingStore(pinia).pageTitle).toBe("Sign in");
+  });
+
   it("rejects empty login attempts before calling the store", async () => {
     const wrapper = mountPage();
 
