@@ -25,6 +25,7 @@ import {
   runFallbackProbe,
 } from "@/utils/api";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { httpUrlRule, requiredRule } from "@/utils/form-rules";
 import dayjs from "dayjs";
 
 const router = useRouter();
@@ -100,6 +101,12 @@ async function loadCacheStats() {
   }
 }
 
+const formRef = ref(null);
+const formRules = {
+  name: [requiredRule("Name")],
+  url: [requiredRule("URL"), httpUrlRule],
+};
+
 function openCreateDialog() {
   dialogMode.value = "create";
   formData.value = {
@@ -113,6 +120,7 @@ function openCreateDialog() {
     enabled: true,
   };
   dialogVisible.value = true;
+  formRef.value?.clearValidate();
 }
 
 function openEditDialog(source) {
@@ -128,10 +136,12 @@ function openEditDialog(source) {
     enabled: source.enabled,
   };
   dialogVisible.value = true;
+  formRef.value?.clearValidate();
 }
 
 async function handleSubmit() {
   if (!checkAuth()) return;
+  if (!(await formRef.value.validate().catch(() => false))) return;
 
   loading.value = true;
   try {
@@ -1660,12 +1670,17 @@ onMounted(async () => {
         "
         width="600px"
       >
-        <el-form :model="formData" label-width="120px">
-          <el-form-item label="Name" required>
+        <el-form
+          ref="formRef"
+          :model="formData"
+          :rules="formRules"
+          label-width="120px"
+        >
+          <el-form-item label="Name" prop="name">
             <el-input v-model="formData.name" placeholder="HuggingFace" />
           </el-form-item>
 
-          <el-form-item label="URL" required>
+          <el-form-item label="URL" prop="url">
             <el-input
               v-model="formData.url"
               placeholder="https://huggingface.co"

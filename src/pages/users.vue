@@ -15,6 +15,7 @@ import {
   updateUserQuota,
 } from "@/utils/api";
 import { formatBytes } from "@/utils/api";
+import { emailRule, requiredRule } from "@/utils/form-rules";
 import { ElMessage, ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
 
@@ -141,6 +142,13 @@ const createForm = ref({
   public_quota_bytes: null,
 });
 
+const createFormRef = ref(null);
+const createRules = {
+  username: [requiredRule("Username")],
+  email: [requiredRule("Email"), emailRule],
+  password: [requiredRule("Password")],
+};
+
 function checkAuth() {
   if (!adminStore.token) {
     router.push("/login");
@@ -222,6 +230,7 @@ async function handleViewUser(row) {
 
 async function handleCreateUser() {
   if (!checkAuth()) return;
+  if (!(await createFormRef.value.validate().catch(() => false))) return;
 
   try {
     await createUser(adminStore.token, createForm.value);
@@ -381,6 +390,7 @@ function resetForm() {
     private_quota_bytes: null,
     public_quota_bytes: null,
   };
+  createFormRef.value?.clearValidate();
 }
 
 function formatDate(dateStr) {
@@ -617,15 +627,20 @@ onMounted(() => {
         width="600px"
         @close="resetForm"
       >
-        <el-form :model="createForm" label-width="180px">
-          <el-form-item label="Username" required>
+        <el-form
+          ref="createFormRef"
+          :model="createForm"
+          :rules="createRules"
+          label-width="180px"
+        >
+          <el-form-item label="Username" prop="username">
             <el-input
               v-model="createForm.username"
               placeholder="Enter username"
             />
           </el-form-item>
 
-          <el-form-item label="Email" required>
+          <el-form-item label="Email" prop="email">
             <el-input
               v-model="createForm.email"
               type="email"
@@ -633,7 +648,7 @@ onMounted(() => {
             />
           </el-form-item>
 
-          <el-form-item label="Password" required>
+          <el-form-item label="Password" prop="password">
             <el-input
               v-model="createForm.password"
               type="password"
