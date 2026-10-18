@@ -69,6 +69,7 @@ export default defineConfig({
         "src/components/storage/UsageRecount.vue",
         "src/components/site/ThemeSettings.vue",
         "src/shared/site-appearance.js",
+        "src/shared/site-theme.js",
         "src/shared/markdown-styles.js",
         "src/components/tasks/TaskDetail.vue",
         "src/components/tasks/TaskLogViewer.vue",
