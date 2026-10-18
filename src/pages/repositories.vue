@@ -7,6 +7,7 @@ import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
 import FileTree from "@/components/FileTree.vue";
 import { useAdminStore } from "@/stores/admin";
+import { useCompactViewport } from "@/composables/useCompactViewport";
 import {
   listRepositories,
   getRepositoryDetails,
@@ -24,6 +25,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
 
 const router = useRouter();
+const compact = useCompactViewport();
 const adminStore = useAdminStore();
 const repositories = ref([]);
 const totalCount = ref(0);
@@ -450,7 +452,7 @@ onMounted(() => {
 
       <!-- Filters -->
       <el-card class="mb-4">
-        <div class="flex gap-4 items-end">
+        <div class="flex flex-wrap gap-4 items-end">
           <el-form-item label="Repository Type" class="mb-0">
             <el-select
               v-model="filterRepoType"
@@ -573,7 +575,11 @@ onMounted(() => {
               {{ formatDate(row.created_at) }}
             </template>
           </el-table-column>
-          <el-table-column label="Actions" width="120" fixed="right">
+          <el-table-column
+            label="Actions"
+            width="120"
+            :fixed="compact ? false : 'right'"
+          >
             <template #default="{ row }">
               <el-button size="small" @click="handleViewRepo(row)">
                 View Details

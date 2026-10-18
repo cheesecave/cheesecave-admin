@@ -36,6 +36,12 @@ describe("admin user deletion error branches", () => {
   const wrappers = [];
   beforeEach(async () => {
     vi.resetAllMocks();
+    // resetAllMocks also empties the global matchMedia stub of the test setup.
+    vi.stubGlobal("matchMedia", () => ({
+      matches: false,
+      addEventListener() {},
+      removeEventListener() {},
+    }));
     mocks.listUsers.mockResolvedValue({ users: [], total: 0 });
     const elementPlus = await vi.importActual("element-plus");
     vi.spyOn(elementPlus.ElMessage, "error").mockImplementation(mocks.error);

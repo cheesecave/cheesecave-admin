@@ -6,6 +6,7 @@ import AdminLayout from "@/components/AdminLayout.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
 import { useAdminStore } from "@/stores/admin";
+import { useCompactViewport } from "@/composables/useCompactViewport";
 import {
   listUsers,
   getUserInfo,
@@ -20,6 +21,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
 
 const router = useRouter();
+const compact = useCompactViewport();
 const adminStore = useAdminStore();
 const users = ref([]);
 const loading = ref(false);
@@ -579,7 +581,11 @@ onMounted(() => {
               {{ formatDate(row.created_at) }}
             </template>
           </el-table-column>
-          <el-table-column label="Actions" width="300" fixed="right">
+          <el-table-column
+            label="Actions"
+            width="300"
+            :fixed="compact ? false : 'right'"
+          >
             <template #default="{ row }">
               <el-button size="small" @click="handleViewUser(row)">
                 <template #icon>

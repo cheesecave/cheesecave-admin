@@ -288,7 +288,13 @@ export const ElementPlusStubs = {
               vnode && vnode.props && vnode.props.label
                 ? h(
                     "td",
-                    { "data-col-label": vnode.props.label },
+                    {
+                      "data-col-label": vnode.props.label,
+                      "data-fixed":
+                        vnode.props.fixed === undefined
+                          ? undefined
+                          : String(vnode.props.fixed),
+                    },
                     vnode.children && vnode.children.default
                       ? vnode.children.default({ row })
                       : String(row[vnode.props.prop] ?? ""),

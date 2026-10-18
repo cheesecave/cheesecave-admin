@@ -78,6 +78,7 @@ export default defineConfig({
         "src/stores/admin.js",
         "src/stores/theme.js",
         "src/utils/api.js",
+        "src/composables/useCompactViewport.js",
         "src/utils/clipboard.js",
         "src/utils/form-rules.js",
       ],

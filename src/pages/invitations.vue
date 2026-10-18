@@ -6,6 +6,7 @@ import AdminLayout from "@/components/AdminLayout.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
 import { useAdminStore } from "@/stores/admin";
+import { useCompactViewport } from "@/composables/useCompactViewport";
 import {
   createRegisterInvitation,
   listInvitations,
@@ -16,6 +17,7 @@ import { copyToClipboard } from "@/utils/clipboard";
 import dayjs from "dayjs";
 
 const router = useRouter();
+const compact = useCompactViewport();
 const adminStore = useAdminStore();
 const dialogVisible = ref(false);
 const generatedLink = ref("");
@@ -214,7 +216,7 @@ onMounted(() => {
 
       <!-- Filter -->
       <el-card class="mb-4">
-        <div class="flex items-center gap-4">
+        <div class="flex flex-wrap items-center gap-4">
           <span class="font-semibold">Filter by Type:</span>
           <el-radio-group v-model="filterAction" @change="loadInvitations">
             <el-radio-button label="all">All Invitations</el-radio-button>
@@ -302,7 +304,11 @@ onMounted(() => {
             </template>
           </el-table-column>
 
-          <el-table-column label="Actions" width="200" fixed="right">
+          <el-table-column
+            label="Actions"
+            width="200"
+            :fixed="compact ? false : 'right'"
+          >
             <template #default="{ row }">
               <el-button
                 size="small"
