@@ -90,6 +90,13 @@ describe("TaskOverview", () => {
     vi.useRealTimers();
   });
 
+  it("titles its panels at level 2, directly under the page's h1", () => {
+    const wrapper = mountOverview(makeStats());
+
+    expect(wrapper.findAll("h3")).toHaveLength(0);
+    expect(wrapper.findAll("h2").map((node) => node.text())).toContain("Activity");
+  });
+
   it("renders KPI tiles with tones derived from the thresholds", () => {
     const wrapper = mountOverview(makeStats());
 

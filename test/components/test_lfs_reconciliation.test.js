@@ -177,6 +177,11 @@ describe("LfsReconciliation", () => {
     expect(wrapper.get('[data-testid="lfs-reconcile-task"]').text()).toContain(
       "0 / ?",
     );
+    expect(
+      wrapper
+        .get('[data-testid="lfs-reconcile-task"] [data-el-progress]')
+        .attributes("aria-label"),
+    ).toBe("LFS reconciliation progress");
     expect(wrapper.get('[data-testid="lfs-reconcile-start"]').text()).toBe(
       "Running",
     );

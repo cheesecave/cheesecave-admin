@@ -108,6 +108,11 @@ describe("UsageRecount", () => {
       "3 / 12",
     );
     expect(
+      wrapper
+        .get('[data-testid="usage-recount-task"] [data-el-progress]')
+        .attributes("aria-label"),
+    ).toBe("Usage recount progress");
+    expect(
       wrapper.get('[data-testid="usage-recount-start"]').attributes("disabled"),
     ).toBeDefined();
     expect(wrapper.find('[data-testid="usage-recount-stats"]').exists()).toBe(

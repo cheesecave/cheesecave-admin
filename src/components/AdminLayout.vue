@@ -284,7 +284,7 @@ watch(
       :inert="mobileNavigationOpen ? '' : undefined"
     >
       <!-- Header -->
-      <el-header class="header">
+      <el-header class="header" role="banner">
         <button
           ref="menuButtonRef"
           type="button"

@@ -99,7 +99,7 @@ watch(
       <span class="font-bold">{{ title }}</span>
     </template>
     <div :style="{ height: height + 'px' }">
-      <Line :data="chartData" :options="chartOptions" />
+      <Line :data="chartData" :options="chartOptions" :aria-label="title" />
     </div>
   </el-card>
 </template>

@@ -202,7 +202,7 @@ function relative(iso) {
 
     <section class="panel">
       <header class="panel-header">
-        <h3>Activity</h3>
+        <h2>Activity</h2>
         <span class="legend">
           <span class="swatch ok" />succeeded <span class="swatch bad" />failed
         </span>
@@ -227,7 +227,7 @@ function relative(iso) {
     <div class="columns">
       <section class="panel">
         <header class="panel-header">
-          <h3>Health by kind</h3>
+          <h2>Health by kind</h2>
           <span class="panel-hint">click a kind to list its tasks</span>
         </header>
         <p
@@ -276,7 +276,7 @@ function relative(iso) {
 
       <section class="panel">
         <header class="panel-header">
-          <h3>Errors</h3>
+          <h2>Errors</h2>
           <span class="panel-hint">final failures and pending retries</span>
         </header>
         <p
@@ -481,7 +481,7 @@ function relative(iso) {
   margin-bottom: 12px;
 }
 
-.panel-header h3 {
+.panel-header h2 {
   margin: 0;
   font-size: 15px;
   font-weight: 600;

@@ -55,7 +55,7 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="login-container">
+  <main class="login-container">
     <div class="login-card">
       <div class="login-header">
         <img
@@ -108,7 +108,7 @@ async function handleLogin() {
         </el-alert>
       </div>
     </div>
-  </div>
+  </main>
 </template>
 
 <style scoped>
