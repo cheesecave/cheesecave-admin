@@ -1,6 +1,6 @@
 import { defineComponent, h } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ElementPlusStubs } from "../helpers/vue";
 
@@ -20,8 +20,10 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
+const routeState = vi.hoisted(() => ({ query: {} }));
 vi.mock("vue-router", () => ({
   useRouter: () => mocks.router,
+  useRoute: () => routeState,
 }));
 
 vi.mock("@/stores/admin", () => ({
@@ -269,4 +271,42 @@ describe("admin storage recount of repositories", () => {
       wrapper.unmount();
     },
   );
+});
+
+describe("repositories opened from the Overview", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.adminStore.token = "admin-token";
+    mocks.api.listRepositories.mockResolvedValue({ repositories: [], total: 0 });
+    mocks.api.getSiteConfig.mockResolvedValue({});
+  });
+  afterEach(() => {
+    routeState.query = {};
+  });
+
+  it("q pre-fills the search and loads that search", async () => {
+    routeState.query = { q: "deepghs/danbooru2024" };
+    const wrapper = mountPage();
+    await flushPromises();
+
+    expect(mocks.api.listRepositories).toHaveBeenCalledWith(
+      "admin-token",
+      expect.objectContaining({ search: "deepghs/danbooru2024" }),
+    );
+    wrapper.unmount();
+  });
+
+  it("without q, or with a repeated q, searches for nothing", async () => {
+    for (const query of [{}, { q: ["a", "b"] }]) {
+      routeState.query = query;
+      mocks.api.listRepositories.mockClear();
+      const wrapper = mountPage();
+      await flushPromises();
+      expect(mocks.api.listRepositories).toHaveBeenCalledWith(
+        "admin-token",
+        expect.objectContaining({ search: undefined }),
+      );
+      wrapper.unmount();
+    }
+  });
 });

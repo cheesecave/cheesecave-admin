@@ -6,6 +6,7 @@ import { useThemeStore } from "@/stores/theme";
 import { useSiteBrandingStore } from "@/stores/siteBranding";
 import { ElMessage } from "element-plus";
 import GlobalSearch from "@/components/GlobalSearch.vue";
+import { useOverviewStore } from "@/stores/overview";
 
 const buildInfo =
   typeof __BUILD_INFO__ === "undefined"
@@ -26,6 +27,7 @@ const route = useRoute();
 const adminStore = useAdminStore();
 const themeStore = useThemeStore();
 const siteBrandingStore = useSiteBrandingStore();
+const overview = useOverviewStore();
 
 const globalSearchRef = ref(null);
 const sidebarScrollRef = ref(null);
@@ -78,6 +80,9 @@ function scrollSidebar(direction) {
 }
 
 onMounted(() => {
+  // One poll for the whole app: the sidebar badges and the Overview share it, and pages that
+  // remount this layout on every navigation do not restart it.
+  overview.ensureStarted();
   window.addEventListener("keydown", handleNavigationKey);
   window.addEventListener("resize", handleNavigationResize);
   updateSidebarScrollState();
@@ -94,9 +99,22 @@ onBeforeUnmount(() => {
 
 function handleLogout() {
   adminStore.logout();
+  overview.reset();
   ElMessage.success("Logged out successfully");
   router.push("/login");
 }
+
+// The overview poll is the first thing to notice an admin token that stopped working.
+watch(
+  () => overview.unauthorized,
+  (expired) => {
+    if (!expired) return;
+    adminStore.logout();
+    overview.reset();
+    ElMessage.error("Invalid admin token. Please login again.");
+    router.push("/login");
+  },
+);
 
 function openGlobalSearch() {
   if (globalSearchRef.value) {
@@ -105,7 +123,7 @@ function openGlobalSearch() {
 }
 
 const menuItems = [
-  { path: "/", label: "Dashboard", icon: "i-carbon-dashboard" },
+  { path: "/", label: "Overview", icon: "i-carbon-dashboard" },
   {
     path: "/site",
     label: "Site",
@@ -237,6 +255,13 @@ watch(
             >
               <div :class="item.icon" class="mr-2" />
               <span>{{ item.label }}</span>
+              <span
+                v-if="overview.badges[item.path]"
+                class="nav-badge"
+                :class="overview.badges[item.path].kind"
+                :aria-label="`${overview.badges[item.path].n} need attention`"
+                >{{ overview.badges[item.path].n }}</span
+              >
             </el-menu-item>
           </el-menu>
         </div>
@@ -356,6 +381,19 @@ watch(
 </template>
 
 <style scoped>
+.nav-badge {
+  margin-left: auto;
+  min-width: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  color: var(--admin-on-fill, #111);
+  background: var(--color-info);
+}
+.nav-badge.danger { background: var(--color-error); }
+.nav-badge.warning { background: var(--color-warning); }
 .admin-layout {
   --admin-header-height: 60px;
   height: 100vh;

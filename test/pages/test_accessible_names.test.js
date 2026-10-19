@@ -19,7 +19,10 @@ vi.mock("@/utils/api", async (importOriginal) => {
     ]),
   );
 });
-vi.mock("vue-router", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("vue-router", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  useRoute: () => ({ query: {} }),
+}));
 vi.mock("@/stores/admin", () => ({
   useAdminStore: () => ({ token: "admin-token", logout: vi.fn() }),
 }));

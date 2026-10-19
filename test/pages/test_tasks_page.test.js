@@ -5,7 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ElementPlusStubs } from "../helpers/vue";
 
 const mocks = vi.hoisted(() => ({
-  router: { push: vi.fn() },
+  router: { push: vi.fn(), replace: vi.fn() },
+  route: { query: {} },
   adminStore: { token: "admin-token", logout: vi.fn() },
   api: {
     listTasks: vi.fn(),
@@ -22,6 +23,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("vue-router", () => ({
   useRouter: () => mocks.router,
+  useRoute: () => mocks.route,
 }));
 
 vi.mock("@/stores/admin", () => ({
@@ -247,6 +249,8 @@ describe("admin background tasks page", () => {
   beforeEach(async () => {
     vi.useFakeTimers();
     mocks.router.push.mockReset();
+    mocks.router.replace.mockReset();
+    mocks.route.query = {};
     mocks.adminStore.logout.mockReset();
     mocks.adminStore.token = "admin-token";
     Object.values(mocks.api).forEach((fn) => fn.mockReset());
@@ -1009,5 +1013,71 @@ describe("admin background tasks page", () => {
     expect(wrapper.find('[data-testid="tasks-workers-chip"]').exists()).toBe(
       false,
     );
+  });
+  describe("opened from the Overview", () => {
+    it("starts on the task list filtered by the link, with the window, and says why", async () => {
+      mocks.route.query = { status: "failed", window: "24h" };
+      mocks.api.listTasks.mockResolvedValue(listResponse([FAILED]));
+      const wrapper = mountPage();
+      await flushPromises();
+
+      expect(mocks.api.listTasks).toHaveBeenCalledWith(
+        "admin-token",
+        expect.objectContaining({ status: "failed" }),
+      );
+      expect(mocks.api.getTaskStats).toHaveBeenCalledWith("admin-token", "24h");
+      expect(
+        wrapper.get('[data-el-tabs="true"]').attributes("data-active"),
+      ).toBe("tasks");
+      expect(wrapper.get('[data-testid="deep-link-banner"]').text()).toBe(
+        "Showing failed tasks from the last 24h, opened from the Overview.",
+      );
+    });
+
+    it("works without a window", async () => {
+      mocks.route.query = { status: "queued", window: "nonsense" };
+      mocks.api.listTasks.mockResolvedValue(listResponse([QUEUED]));
+      const wrapper = mountPage();
+      await flushPromises();
+
+      expect(mocks.api.getTaskStats).toHaveBeenCalledWith("admin-token", "1h");
+      expect(wrapper.get('[data-testid="deep-link-banner"]').text()).toBe(
+        "Showing queued tasks, opened from the Overview.",
+      );
+    });
+
+    it("ignores an unknown status", async () => {
+      mocks.route.query = { status: "exploded" };
+      mocks.api.listTasks.mockResolvedValue(listResponse());
+      const wrapper = mountPage();
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="deep-link-banner"]').exists()).toBe(
+        false,
+      );
+      expect(
+        wrapper.get('[data-el-tabs="true"]').attributes("data-active"),
+      ).toBe("overview");
+    });
+
+    it("dismissing the banner drops the filter and the parameters", async () => {
+      mocks.route.query = { status: "failed", window: "24h" };
+      mocks.api.listTasks.mockResolvedValue(listResponse([FAILED]));
+      const wrapper = mountPage();
+      await flushPromises();
+      mocks.api.listTasks.mockClear();
+
+      wrapper.getComponent(ElementPlusStubs.ElAlert).vm.$emit("close");
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="deep-link-banner"]').exists()).toBe(
+        false,
+      );
+      expect(mocks.router.replace).toHaveBeenCalledWith({ path: "/tasks" });
+      expect(mocks.api.listTasks).toHaveBeenCalledWith(
+        "admin-token",
+        expect.objectContaining({ status: undefined }),
+      );
+    });
   });
 });

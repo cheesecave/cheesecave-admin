@@ -870,6 +870,24 @@ describe("admin API client", () => {
     );
   });
 
+  it("asks for the overview, optionally only some sections", async () => {
+    const api = await loadModule();
+    client.get.mockResolvedValue({ data: { schema: 1 } });
+
+    expect(await api.getOverview("admin-token")).toEqual({ schema: 1 });
+    expect(client.get).toHaveBeenLastCalledWith("/overview", {
+      params: { range: "7d" },
+    });
+
+    await api.getOverview("admin-token", {
+      sections: ["health", "queue"],
+      range: "24h",
+    });
+    expect(client.get).toHaveBeenLastCalledWith("/overview", {
+      params: { range: "24h", sections: "health,queue" },
+    });
+  });
+
   it("verifies admin tokens and formats quota sizes safely", async () => {
     const api = await loadModule();
 

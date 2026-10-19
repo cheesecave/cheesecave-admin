@@ -29,7 +29,10 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("vue-router", () => ({ useRouter: () => mocks.router }));
+vi.mock("vue-router", () => ({
+  useRouter: () => mocks.router,
+  useRoute: () => ({ query: {} }),
+}));
 vi.mock("@/stores/admin", () => ({ useAdminStore: () => mocks.adminStore }));
 vi.mock("@/utils/api", () => ({
   ...mocks.api,

@@ -64,6 +64,31 @@ const hasResults = computed(() => {
   return flatResults.value.length > 0;
 });
 
+// Below two characters the box is a command palette: pages and actions, filtered by what is typed.
+const commands = [
+  { kind: "Action", label: "Create user", icon: "i-carbon-user-follow", to: { path: "/users", query: { create: "1" } } },
+  { kind: "Action", label: "Reset a password", icon: "i-carbon-password", to: { path: "/users", query: { reset: "1" } } },
+  { kind: "Action", label: "New invitation", icon: "i-carbon-email", to: { path: "/invitations", query: { create: "1" } } },
+  { kind: "Action", label: "Failed tasks, last 24 h", icon: "i-carbon-warning", to: { path: "/tasks", query: { status: "failed", window: "24h" } } },
+  { kind: "Action", label: "Users over quota", icon: "i-carbon-meter", to: { path: "/users", query: { filter: "over_quota" } } },
+  { kind: "Page", label: "Overview", icon: "i-carbon-dashboard", to: "/" },
+  { kind: "Page", label: "Health", icon: "i-carbon-activity", to: "/health" },
+  { kind: "Page", label: "Background Tasks", icon: "i-carbon-task", to: "/tasks" },
+  { kind: "Page", label: "Storage", icon: "i-carbon-data-volume", to: "/storage" },
+];
+const paletteMode = computed(
+  () => !(searchQuery.value && searchQuery.value.length >= 2),
+);
+const shownCommands = computed(() => {
+  const typed = (searchQuery.value || "").toLowerCase();
+  return commands.filter((c) => c.label.toLowerCase().includes(typed));
+});
+
+function runCommand(command) {
+  closeDialog();
+  router.push(command.to);
+}
+
 function openDialog() {
   dialogVisible.value = true;
   searchQuery.value = "";
@@ -101,6 +126,7 @@ async function performSearch() {
 }
 
 function handleSearchInput() {
+  selectedIndex.value = 0;
   // Clear existing timer
   if (searchDebounceTimer.value) {
     clearTimeout(searchDebounceTimer.value);
@@ -113,21 +139,20 @@ function handleSearchInput() {
 }
 
 function handleKeyDown(event) {
-  if (!hasResults.value) return;
+  const list = paletteMode.value ? shownCommands.value : flatResults.value;
+  if (!list.length) return;
 
   if (event.key === "ArrowDown") {
     event.preventDefault();
-    selectedIndex.value = Math.min(
-      selectedIndex.value + 1,
-      flatResults.value.length - 1,
-    );
+    selectedIndex.value = Math.min(selectedIndex.value + 1, list.length - 1);
   } else if (event.key === "ArrowUp") {
     event.preventDefault();
     selectedIndex.value = Math.max(selectedIndex.value - 1, 0);
   } else if (event.key === "Enter") {
     event.preventDefault();
-    if (flatResults.value[selectedIndex.value]) {
-      handleSelectResult(flatResults.value[selectedIndex.value]);
+    if (list[selectedIndex.value]) {
+      if (paletteMode.value) runCommand(list[selectedIndex.value]);
+      else handleSelectResult(list[selectedIndex.value]);
     }
   }
 }
@@ -253,9 +278,35 @@ defineExpose({ openDialog });
 
       <!-- Results -->
       <div
-        v-if="searchQuery && searchQuery.length >= 2"
+        v-if="paletteMode"
         class="results-container"
+        data-testid="palette"
       >
+        <div class="section-header">
+          <div class="i-carbon-flash text-orange-500" />
+          <span>Go to and actions</span>
+        </div>
+        <div
+          v-for="(c, i) in shownCommands"
+          :key="c.label"
+          class="result-item"
+          :class="{ selected: selectedIndex === i }"
+          data-testid="palette-item"
+          @click="runCommand(c)"
+        >
+          <div :class="c.icon" class="text-lg" />
+          <div class="result-content">
+            <div class="result-title">{{ c.label }}</div>
+          </div>
+          <el-tag size="small" effect="plain">{{ c.kind }}</el-tag>
+        </div>
+        <p class="hint-text text-xs mt-2">
+          Type two or more characters to search users, repositories and commits
+          • <kbd>↑</kbd> <kbd>↓</kbd> to move • <kbd>Enter</kbd> to open •
+          <kbd>Esc</kbd> to close
+        </p>
+      </div>
+      <div v-else class="results-container">
         <div v-if="loading" class="text-center py-8 text-gray-500">
           <div class="i-carbon-circle-dash animate-spin text-2xl mb-2" />
           <p>Searching...</p>
@@ -409,14 +460,6 @@ defineExpose({ openDialog });
         </div>
       </div>
 
-      <!-- Hint -->
-      <div v-else class="hint-text">
-        <p>Type at least 2 characters to search</p>
-        <p class="text-xs mt-2">
-          <kbd>↑</kbd> <kbd>↓</kbd> to navigate • <kbd>Enter</kbd> to select •
-          <kbd>Esc</kbd> to close
-        </p>
-      </div>
     </div>
   </el-dialog>
 </template>

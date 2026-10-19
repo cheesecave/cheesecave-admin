@@ -11,7 +11,7 @@
 
 1. [Overview](#overview)
 2. [Authentication](#authentication)
-3. [Dashboard](#dashboard)
+3. [The Overview Page](#the-overview-page)
 4. [User Management](#user-management)
 5. [Repository Management](#repository-management)
 6. [Commit History Viewer](#commit-history-viewer)
@@ -33,7 +33,7 @@ The Admin Portal provides a centralized interface for managing your KohakuHub in
 - **Storage Browser** - Browse S3 buckets and objects
 - **Quota Management** - Set and monitor storage quotas
 - **Invitation Management** - Create and manage registration invitations
-- **Statistics Dashboard** - Real-time insights into usage
+- **Overview** - Status, what needs attention and live statistics
 - **Bulk Operations** - Recalculate storage for all repositories
 
 **Access URL:**
@@ -86,42 +86,24 @@ docker-compose up -d
 
 ---
 
-## Dashboard
+## The Overview Page
 
-### Overview Statistics
+The landing page answers three questions, top to bottom: **is everything running, what needs me, and what is happening**.
 
-The dashboard shows real-time statistics from your database:
+- **Status strip**: PostgreSQL, S3, LakeFS, Valkey and SMTP with their latency, workers online or lost, queue depth and the backend build. Every chip links to Health or Background Tasks.
+- **Needs attention**: a prioritised list that the backend computes (a dependency down, a lost worker, failed tasks in the last 24 hours, a growing backlog, users or repositories over quota, LFS drift reported by the last reconciliation). Each row links to the page that fixes it, already filtered. When nothing needs attention it says so.
+- **KPIs**: users, repositories, commits, storage and LFS objects, with the change over the selected range and a small trend. One range (24 h, 7 d or 30 d) governs the whole page.
+- **Activity and task queue**: commits and new repositories per hour or day, and the queue's counts with an hour-by-hour strip.
+- **Recent activity and top repositories** (by commits or by size).
+- **Quick actions and module launcher**: create a user, reset a password, create an invitation, run LFS reconciliation, then every module grouped with a badge where something needs a look.
 
-**User Stats:**
-- Total users
-- Active users
-- Email verified users
-- Inactive users
+The data refreshes by itself (every 15 s, 30 s or 1 min, or manually) while the tab is visible; the header shows when it was last updated and marks stale data. If a refresh fails, the last good data stays on screen, greyed. The sidebar badges (Background Tasks, Health, Quota Overview, Storage) use the same refresh, so they are visible from every page.
 
-**Organization Stats:**
-- Total organizations
+**Ctrl+K** opens a box that lists pages and actions before you type, and searches users, repositories and commits once you type two characters.
 
-**Repository Stats:**
-- Total repositories
-- Private vs public repositories
-- Breakdown by type (models, datasets, spaces)
+An older backend without `GET /admin/api/overview` is detected automatically; the page then shows a reduced view built from `/stats/detailed` and `/stats/timeseries`.
 
-**Commit Stats:**
-- Total commits
-- Top contributors (by commit count)
-
-**Storage Stats:**
-- Total storage used (private + public)
-- Private vs public storage
-- LFS object count and size
-
-**Quick Actions:**
-- Navigate to user management
-- Browse repositories
-- View commits
-- Inspect S3 storage
-- Manage quotas
-- Manage invitations
+**Links into the other pages** (also usable by hand): `/tasks?status=failed&window=24h`, `/users?filter=over_quota`, `/users?create=1`, `/users?reset=1`, `/invitations?create=1`, `/storage?tab=orphans|lfs`, `/repositories?q=owner/name`.
 
 ---
 
@@ -848,7 +830,7 @@ docker logs khub-hub-api | grep "\[ADMIN\]"
 ### Scenario 1: New User Onboarding
 
 ```
-1. Dashboard → Quick Actions → "Manage Users"
+1. Overview → Quick Actions → "Manage Users"
 2. Click "Create User"
 3. Fill form:
    - Username: newuser
@@ -863,7 +845,7 @@ docker logs khub-hub-api | grep "\[ADMIN\]"
 ### Scenario 2: Invite-Only Registration Mode
 
 ```
-1. Dashboard → "Manage Invitations"
+1. Overview → "Manage Invitations"
 2. Click "Create Registration Invitation"
 3. Configure:
    - Max Usage: 50 (for team)
@@ -877,7 +859,7 @@ docker logs khub-hub-api | grep "\[ADMIN\]"
 ### Scenario 3: Storage Cleanup
 
 ```
-1. Dashboard → "Browse Storage"
+1. Overview → "Browse Storage"
 2. Click on "hub-storage" bucket
 3. Filter by prefix: "lfs/"
 4. Review large objects
@@ -888,7 +870,7 @@ docker logs khub-hub-api | grep "\[ADMIN\]"
 ### Scenario 4: User Investigation
 
 ```
-1. Dashboard → "View Commits"
+1. Overview → "View Commits"
 2. Filter by username: "suspicious-user"
 3. Review commit activity
 4. Click repository links to inspect content
@@ -898,7 +880,7 @@ docker logs khub-hub-api | grep "\[ADMIN\]"
 ### Scenario 5: Quota Enforcement
 
 ```
-1. Dashboard → "Manage Quotas"
+1. Overview → "Manage Quotas"
 2. Select namespace (user or org)
 3. View current usage
 4. Set new limits if exceeded
@@ -909,7 +891,7 @@ docker logs khub-hub-api | grep "\[ADMIN\]"
 ### Scenario 6: System Maintenance
 
 ```
-1. Dashboard → "Bulk Operations"
+1. Overview → "Bulk Operations"
 2. Click "Recalculate All Repository Storage"
 3. Optional: Filter by type or namespace
 4. Confirm operation
@@ -1150,7 +1132,7 @@ Admin operations run synchronous queries with `db.atomic()`:
 | Storage browser | ✅ Full | ❌ No | Portal only |
 | Quota management | ✅ Full | ⚠️ API only | Portal: Visual<br>CLI: Scripting |
 | Invitation management | ✅ Full | ❌ No | Portal only |
-| Statistics | ✅ Dashboard | ❌ No | Portal only |
+| Statistics | ✅ Overview | ❌ No | Portal only |
 | Bulk operations | ✅ Full | ❌ No | Portal only |
 | Automation | ❌ Manual | ✅ Scripts | Portal: Manual<br>CLI: Automation |
 

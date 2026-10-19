@@ -317,6 +317,20 @@ export async function getQuotaOverview(token) {
   return response.data;
 }
 
+/**
+ * One call for the Overview page: independent sections, each with its own freshness.
+ * @param {string} token - Admin token
+ * @param {Object} opts - {sections: string[] (default all), range: "24h"|"7d"|"30d"}
+ * @returns {Promise<Object>} {schema, generated_at, range, sections}
+ */
+export async function getOverview(token, { sections, range = "7d" } = {}) {
+  const client = createAdminClient(token);
+  const params = { range };
+  if (sections) params.sections = sections.join(",");
+  const response = await client.get("/overview", { params });
+  return response.data;
+}
+
 // ===== System Stats =====
 
 /**

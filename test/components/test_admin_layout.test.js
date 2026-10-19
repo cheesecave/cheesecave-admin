@@ -25,6 +25,12 @@ const mocks = vi.hoisted(() => ({
   globalSearch: {
     openDialog: vi.fn(),
   },
+  overview: {
+    badges: {},
+    unauthorized: false,
+    ensureStarted: vi.fn(),
+    reset: vi.fn(),
+  },
 }));
 
 vi.mock("vue-router", () => ({
@@ -34,6 +40,10 @@ vi.mock("vue-router", () => ({
 
 vi.mock("@/stores/admin", () => ({
   useAdminStore: () => mocks.adminStore,
+}));
+
+vi.mock("@/stores/overview", () => ({
+  useOverviewStore: () => mocks.overview,
 }));
 
 vi.mock("@/stores/theme", () => ({
@@ -119,7 +129,7 @@ describe("AdminLayout", () => {
   });
 
   it.each([
-    ["/", "Dashboard"],
+    ["/", "Overview"],
     ["/repositories", "Repositories"],
     ["/QuotaOverview", "Quota Overview"],
     ["/tasks", "Background Tasks"],
