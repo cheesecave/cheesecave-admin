@@ -1,7 +1,7 @@
 <script setup>
 import { getApiErrorMessage } from "@/utils/api-error";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
@@ -23,9 +23,21 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { formatDate } from "@/components/tasks/taskFormat.js";
 
 const router = useRouter();
+const route = useRoute();
 const adminStore = useAdminStore();
 
 const STATUSES = ["queued", "running", "succeeded", "failed", "cancelled"];
+const WINDOWS = ["15m", "1h", "6h", "24h", "7d"];
+// Opened from the Overview (or the Ctrl+K box) as /tasks?status=failed&window=24h: start on the
+// task list with that filter, and say why until the banner is dismissed.
+const deepLink = ref(
+  STATUSES.includes(route.query.status)
+    ? {
+        status: route.query.status,
+        window: WINDOWS.includes(route.query.window) ? route.query.window : "",
+      }
+    : null,
+);
 const STATUS_TAG = {
   queued: "info",
   running: "primary",
@@ -51,15 +63,15 @@ const tasks = ref([]);
 const total = ref(0);
 const counts = ref(Object.fromEntries(STATUSES.map((s) => [s, 0])));
 const kinds = ref([]);
-const filterStatus = ref("");
+const filterStatus = ref(deepLink.value?.status ?? "");
 const filterKind = ref("");
 const currentPage = ref(1);
 const pageSize = ref(20);
 const refreshIntervalSeconds = ref(0);
 const detail = ref(null);
 const detailVisible = ref(false);
-const activeTab = ref("overview");
-const statsWindow = ref("1h");
+const activeTab = ref(deepLink.value ? "tasks" : "overview");
+const statsWindow = ref(deepLink.value?.window || "1h");
 const stats = ref(null);
 const statsFailed = ref(false);
 const roster = ref(null);
@@ -175,6 +187,13 @@ async function reloadDetail(taskId) {
 function applyFilters() {
   currentPage.value = 1;
   loadTasks();
+}
+
+function clearDeepLink() {
+  deepLink.value = null;
+  filterStatus.value = "";
+  router.replace({ path: "/tasks" });
+  applyFilters();
 }
 
 // Status cards toggle their filter; anything picked from the overview opens
@@ -393,6 +412,19 @@ onBeforeUnmount(stopTimer);
           </el-button>
         </template>
       </AdminPageHeader>
+
+      <el-alert
+        v-if="deepLink"
+        type="info"
+        show-icon
+        class="mb-4"
+        data-testid="deep-link-banner"
+        @close="clearDeepLink"
+      >
+        Showing {{ deepLink.status }} tasks<template v-if="deepLink.window">
+          from the last {{ deepLink.window }}</template
+        >, opened from the Overview.
+      </el-alert>
 
       <div class="status-cards mb-4">
         <button

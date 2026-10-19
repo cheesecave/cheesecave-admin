@@ -12,7 +12,11 @@ const mocks = vi.hoisted(() => ({
   error: vi.fn(),
   success: vi.fn(),
 }));
-vi.mock("vue-router", () => ({ useRouter: () => mocks.router }));
+const routeState = vi.hoisted(() => ({ query: {} }));
+vi.mock("vue-router", () => ({
+  useRouter: () => mocks.router,
+  useRoute: () => routeState,
+}));
 vi.mock("@/stores/admin", () => ({ useAdminStore: () => mocks.adminStore }));
 vi.mock("@/utils/api", () => ({
   listUsers: mocks.listUsers,

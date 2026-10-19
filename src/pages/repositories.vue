@@ -1,7 +1,7 @@
 <script setup>
 import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
@@ -25,6 +25,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
 
 const router = useRouter();
+const route = useRoute();
 const compact = useCompactViewport();
 const adminStore = useAdminStore();
 const repositories = ref([]);
@@ -45,7 +46,8 @@ const actionLoading = ref(false);
 const moveForm = ref({ toNamespace: "", toName: "" });
 
 // Search
-const searchQuery = ref("");
+// /repositories?q=owner/name: opened from a repository in the Overview
+const searchQuery = ref(typeof route.query.q === "string" ? route.query.q : "");
 const searchDebounceTimer = ref(null);
 
 // Filters

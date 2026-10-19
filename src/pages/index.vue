@@ -1,529 +1,149 @@
 <script setup>
-import { getApiErrorMessage } from "@/utils/api-error";
-import { ref, computed, onMounted } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
-import StatsCard from "@/components/StatsCard.vue";
 import ChartCard from "@/components/ChartCard.vue";
+import AttentionList from "@/components/overview/AttentionList.vue";
+import KpiTile from "@/components/overview/KpiTile.vue";
+import QueueHealth from "@/components/overview/QueueHealth.vue";
+import QuickLaunch from "@/components/overview/QuickLaunch.vue";
+import RecentFeed from "@/components/overview/RecentFeed.vue";
+import StatusStrip from "@/components/overview/StatusStrip.vue";
+import TopRepos from "@/components/overview/TopRepos.vue";
 import { useAdminStore } from "@/stores/admin";
-import {
-  getDetailedStats,
-  getTopRepositories,
-  getTimeseriesStats,
-  getQuotaOverview,
-} from "@/utils/api";
+import { useOverviewStore } from "@/stores/overview";
 import { formatBytes } from "@/utils/api";
-import { ElMessage } from "element-plus";
+import { formatAge } from "@/utils/relative-time";
 
 const router = useRouter();
 const adminStore = useAdminStore();
-const stats = ref(null);
-const topRepos = ref([]);
-const loading = ref(false);
-const timeseriesData = ref(null);
-const chartDays = ref(30);
-const quotaOverview = ref(null);
+const store = useOverviewStore();
+const now = ref(Date.now());
+let clock;
 
-const hasData = computed(() => stats.value !== null);
+const RANGES = ["24h", "7d", "30d"];
+const INTERVALS = [
+  [15, "Refresh 15 s"],
+  [30, "Refresh 30 s"],
+  [60, "Refresh 1 min"],
+  [0, "Manual"],
+];
 
-async function loadStats() {
+const sections = computed(() => store.sections);
+const usable = (section) => (section && !section.error ? section : null);
+const counts = computed(() => usable(sections.value.counts));
+const n = (value) => Number(value).toLocaleString("en-US");
+
+const age = computed(() =>
+  store.lastOkAt === null
+    ? "loading…"
+    : formatAge(new Date(store.lastOkAt).toISOString(), now.value),
+);
+const stale = computed(() => store.isStale(now.value));
+// Only a change of state is announced; the ticking "Updated … ago" label is not a live region.
+const stateWord = computed(() =>
+  store.failed ? "Update failed" : stale.value ? "Stale" : "",
+);
+
+const activity = computed(() => {
+  const data = usable(sections.value.activity);
+  if (!data) return null;
+  return {
+    labels: data.labels,
+    datasets: [
+      { label: "Commits", data: data.commits, borderColor: "#F56C6C", backgroundColor: "rgba(245,108,108,0.1)", fill: true, tension: 0.3 },
+      { label: "New repositories", data: data.repos, borderColor: "#67C23A", backgroundColor: "rgba(103,194,58,0.1)", fill: true, tension: 0.3 },
+    ],
+  };
+});
+
+onMounted(() => {
+  clock = setInterval(() => (now.value = Date.now()), 1000);
   if (!adminStore.token) {
     router.push("/login");
     return;
   }
-
-  loading.value = true;
-  try {
-    const [statsData, topReposData, timeseriesResult, quotaData] =
-      await Promise.all([
-        getDetailedStats(adminStore.token),
-        getTopRepositories(adminStore.token, 5, "commits"),
-        getTimeseriesStats(adminStore.token, chartDays.value),
-        getQuotaOverview(adminStore.token),
-      ]);
-
-    stats.value = statsData;
-    topRepos.value = topReposData.top_repositories;
-    timeseriesData.value = timeseriesResult;
-    quotaOverview.value = quotaData;
-  } catch (error) {
-    console.error("Failed to load stats:", error);
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      ElMessage.error("Invalid admin token. Please login again.");
-      adminStore.logout();
-      router.push("/login");
-    } else {
-      ElMessage.error(getApiErrorMessage(error, "Failed to load system stats"));
-    }
-  } finally {
-    loading.value = false;
-  }
-}
-
-// Computed chart data for user growth
-const userGrowthChart = computed(() => {
-  if (!timeseriesData.value) return null;
-
-  const dates = Object.keys(timeseriesData.value.users_by_day).sort();
-  const values = dates.map((date) => timeseriesData.value.users_by_day[date]);
-
-  return {
-    labels: dates,
-    datasets: [
-      {
-        label: "New Users",
-        data: values,
-        borderColor: "#409EFF",
-        backgroundColor: "rgba(64, 158, 255, 0.1)",
-        fill: true,
-        tension: 0.4,
-      },
-    ],
-  };
+  store.ensureStarted();
 });
-
-// Computed chart data for repository growth
-const repoGrowthChart = computed(() => {
-  if (!timeseriesData.value) return null;
-
-  const dates = Object.keys(timeseriesData.value.repositories_by_day).sort();
-  const modelData = dates.map(
-    (date) => timeseriesData.value.repositories_by_day[date]?.model || 0,
-  );
-  const datasetData = dates.map(
-    (date) => timeseriesData.value.repositories_by_day[date]?.dataset || 0,
-  );
-  const spaceData = dates.map(
-    (date) => timeseriesData.value.repositories_by_day[date]?.space || 0,
-  );
-
-  return {
-    labels: dates,
-    datasets: [
-      {
-        label: "Models",
-        data: modelData,
-        borderColor: "#409EFF",
-        backgroundColor: "rgba(64, 158, 255, 0.1)",
-        fill: true,
-      },
-      {
-        label: "Datasets",
-        data: datasetData,
-        borderColor: "#67C23A",
-        backgroundColor: "rgba(103, 194, 58, 0.1)",
-        fill: true,
-      },
-      {
-        label: "Spaces",
-        data: spaceData,
-        borderColor: "#E6A23C",
-        backgroundColor: "rgba(230, 162, 60, 0.1)",
-        fill: true,
-      },
-    ],
-  };
-});
-
-// Computed chart data for commit activity
-const commitActivityChart = computed(() => {
-  if (!timeseriesData.value) return null;
-
-  const dates = Object.keys(timeseriesData.value.commits_by_day).sort();
-  const values = dates.map((date) => timeseriesData.value.commits_by_day[date]);
-
-  return {
-    labels: dates,
-    datasets: [
-      {
-        label: "Commits",
-        data: values,
-        borderColor: "#F56C6C",
-        backgroundColor: "rgba(245, 108, 108, 0.1)",
-        fill: true,
-        tension: 0.4,
-      },
-    ],
-  };
-});
-
-function getRepoTypeColor(type) {
-  switch (type) {
-    case "model":
-      return "primary";
-    case "dataset":
-      return "success";
-    case "space":
-      return "warning";
-    default:
-      return "info";
-  }
-}
-
-onMounted(() => {
-  loadStats();
-});
+onBeforeUnmount(() => clearInterval(clock));
 </script>
 
 <template>
   <AdminLayout>
     <AdminPage>
-      <AdminPageHeader
-        title="Dashboard"
-        subtitle="Monitor system activity, growth and storage usage."
-      />
-
-      <div v-loading="loading" class="stats-grid">
-        <StatsCard
-          title="Total Users"
-          :value="stats?.users?.total || 0"
-          :subtitle="`Active: ${stats?.users?.active || 0} | Verified: ${stats?.users?.verified || 0}`"
-          icon="i-carbon-user-multiple"
-          color="blue"
-        />
-
-        <StatsCard
-          title="Organizations"
-          :value="stats?.organizations?.total || 0"
-          icon="i-carbon-enterprise"
-          color="purple"
-        />
-
-        <StatsCard
-          title="Total Repositories"
-          :value="stats?.repositories?.total || 0"
-          :subtitle="`Models: ${stats?.repositories?.by_type?.model || 0} | Datasets: ${stats?.repositories?.by_type?.dataset || 0}`"
-          icon="i-carbon-data-base"
-          color="green"
-        />
-
-        <StatsCard
-          title="Total Commits"
-          :value="stats?.commits?.total || 0"
-          icon="i-carbon-version"
-          color="orange"
-        />
-
-        <StatsCard
-          title="Total Storage"
-          :value="formatBytes(stats?.storage?.total_used || 0)"
-          :subtitle="`Private: ${formatBytes(stats?.storage?.private_used || 0)} | Public: ${formatBytes(stats?.storage?.public_used || 0)}`"
-          icon="i-carbon-data-volume"
-          color="cyan"
-        />
-
-        <StatsCard
-          title="LFS Objects"
-          :value="stats?.lfs?.total_objects || 0"
-          :subtitle="formatBytes(stats?.lfs?.total_size || 0)"
-          icon="i-carbon-document"
-          color="pink"
-        />
-      </div>
-
-      <!-- Activity Charts -->
-      <div v-if="timeseriesData" class="charts-grid mb-6">
-        <ChartCard
-          v-if="userGrowthChart"
-          title="User Growth (Last 30 Days)"
-          :labels="userGrowthChart.labels"
-          :datasets="userGrowthChart.datasets"
-          :height="220"
-        />
-
-        <ChartCard
-          v-if="repoGrowthChart"
-          title="Repository Creation (Last 30 Days)"
-          :labels="repoGrowthChart.labels"
-          :datasets="repoGrowthChart.datasets"
-          :height="220"
-        />
-
-        <ChartCard
-          v-if="commitActivityChart"
-          title="Commit Activity (Last 30 Days)"
-          :labels="commitActivityChart.labels"
-          :datasets="commitActivityChart.datasets"
-          :height="220"
-        />
-      </div>
-
-      <!-- Quota Warnings -->
-      <el-card
-        v-if="
-          quotaOverview &&
-          (quotaOverview.users_over_quota.length > 0 ||
-            quotaOverview.repos_over_quota.length > 0)
-        "
-        class="mb-6"
-      >
-        <template #header>
-          <div class="flex items-center gap-2">
-            <div class="i-carbon-warning text-orange-600" />
-            <span class="font-bold">Quota Warnings</span>
-            <el-tag type="warning" size="small">
-              {{
-                quotaOverview.users_over_quota.length +
-                quotaOverview.repos_over_quota.length
-              }}
-            </el-tag>
+      <AdminPageHeader title="Overview" subtitle="Is everything running, what needs you, and what is happening.">
+        <template #actions>
+          <div class="tools" data-testid="overview-tools">
+            <span class="fresh" :class="{ stale, bad: store.failed }" data-testid="freshness">
+              <i class="dot" aria-hidden="true" />
+              <template v-if="store.failed">Update failed · showing data from {{ age }}</template>
+              <template v-else-if="stale">Stale · updated {{ age }}</template>
+              <template v-else>Updated {{ age }}</template>
+            </span>
+            <span class="sr-only" role="status" data-testid="freshness-state">{{ stateWord }}</span>
+            <el-select :model-value="store.interval" size="small" style="width: 130px" aria-label="Auto-refresh" data-testid="interval" @update:model-value="store.setIntervalSeconds">
+              <el-option v-for="[seconds, label] in INTERVALS" :key="seconds" :value="seconds" :label="label" />
+            </el-select>
+            <el-button size="small" aria-label="Refresh now" data-testid="refresh" @click="store.refresh()">
+              <span class="i-carbon-renew" aria-hidden="true" />
+            </el-button>
+            <span class="seg" role="group" aria-label="Range">
+              <button v-for="r in RANGES" :key="r" type="button" :class="{ on: store.range === r }" :aria-pressed="store.range === r" :data-testid="`range-${r}`" @click="store.setRange(r)">{{ r }}</button>
+            </span>
           </div>
         </template>
+      </AdminPageHeader>
 
-        <div v-if="quotaOverview.users_over_quota.length > 0" class="mb-4">
-          <h3 class="text-sm font-semibold mb-2 text-red-600">
-            Users Over Quota ({{ quotaOverview.users_over_quota.length }})
-          </h3>
-          <el-table
-            :data="quotaOverview.users_over_quota.slice(0, 5)"
-            size="small"
-            stripe
-          >
-            <el-table-column prop="username" label="Username" width="150" />
-            <el-table-column label="Private" width="150" align="right">
-              <template #default="{ row }">
-                <span
-                  :class="{
-                    'text-red-600 font-semibold': row.private_percentage > 100,
-                  }"
-                >
-                  {{ row.private_percentage }}%
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column label="Public" width="150" align="right">
-              <template #default="{ row }">
-                <span
-                  :class="{
-                    'text-red-600 font-semibold': row.public_percentage > 100,
-                  }"
-                >
-                  {{ row.public_percentage }}%
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column label="Action" width="150" align="right">
-              <template #default="{ row }">
-                <el-button
-                  type="primary"
-                  size="small"
-                  @click="$router.push(`/users`)"
-                >
-                  Manage
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
+      <el-alert v-if="store.legacy" type="warning" :closable="false" show-icon class="mb-4" data-testid="legacy-banner">
+        <b>This backend predates the new overview API.</b> Showing the reduced view built from /stats; status, attention and queue need a newer backend.
+      </el-alert>
+      <el-alert v-else-if="store.failed" type="error" :closable="false" show-icon class="mb-4" data-testid="error-banner">
+        <b>Could not refresh the overview.</b> The last good data stays on screen, greyed, and the next attempt is automatic.
+      </el-alert>
 
-        <div v-if="quotaOverview.repos_over_quota.length > 0">
-          <h3 class="text-sm font-semibold mb-2 text-red-600">
-            Repositories Over Quota ({{
-              quotaOverview.repos_over_quota.length
-            }})
-          </h3>
-          <el-table
-            :data="quotaOverview.repos_over_quota.slice(0, 5)"
-            size="small"
-            stripe
-          >
-            <el-table-column label="Repository" min-width="200">
-              <template #default="{ row }">
-                <el-tag :type="getRepoTypeColor(row.repo_type)" size="small">
-                  {{ row.repo_type }}
-                </el-tag>
-                <span class="ml-2 font-mono text-sm">{{ row.full_id }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="Usage" width="120" align="right">
-              <template #default="{ row }">
-                <span class="text-red-600 font-semibold">
-                  {{ row.percentage }}%
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column label="Size" width="120" align="right">
-              <template #default="{ row }">
-                {{ formatBytes(row.used_bytes) }}
-              </template>
-            </el-table-column>
-            <el-table-column label="Action" width="150" align="right">
-              <template #default="{ row }">
-                <el-button
-                  type="primary"
-                  size="small"
-                  @click="$router.push(`/repositories`)"
-                >
-                  View
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-      </el-card>
-
-      <!-- Top Contributors -->
-      <el-card class="mb-6" v-if="stats?.commits?.top_contributors?.length > 0">
-        <template #header>
-          <span class="font-bold">Top Contributors</span>
+      <div :class="{ greyed: store.failed || stale }" data-testid="overview-body">
+        <template v-if="!store.legacy">
+          <StatusStrip :health="sections.health" :workers="sections.workers" :queue="sections.queue" :build="sections.build" />
+          <AttentionList :section="sections.attention" />
         </template>
-        <el-table :data="stats.commits.top_contributors" stripe>
-          <el-table-column prop="username" label="Username" />
-          <el-table-column label="Commits" width="120" align="right">
-            <template #default="{ row }">
-              <el-tag type="success">{{ row.commit_count }}</el-tag>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
 
-      <!-- Top Repositories by Commits -->
-      <el-card class="mb-6" v-if="topRepos.length > 0">
-        <template #header>
-          <span class="font-bold">Top Repositories by Commits</span>
-        </template>
-        <el-table :data="topRepos" stripe>
-          <el-table-column label="Repository" min-width="250">
-            <template #default="{ row }">
-              <div class="flex items-center gap-2">
-                <el-tag :type="getRepoTypeColor(row.repo_type)" size="small">
-                  {{ row.repo_type }}
-                </el-tag>
-                <span class="font-mono">{{ row.repo_full_id }}</span>
-                <el-tag
-                  v-if="row.private"
-                  type="warning"
-                  size="small"
-                  effect="plain"
-                >
-                  Private
-                </el-tag>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="Commits" width="120" align="right">
-            <template #default="{ row }">
-              <el-tag type="success">{{ row.commit_count }}</el-tag>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
-
-      <!-- Quick Actions -->
-      <div class="mt-8">
-        <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-          Quick Actions
-        </h2>
-        <div class="flex gap-4 flex-wrap">
-          <el-button type="primary" @click="$router.push('/users')">
-            <template #icon>
-              <span class="i-carbon-user-multiple" aria-hidden="true" />
-            </template>
-            Manage Users
-          </el-button>
-          <el-button type="success" @click="$router.push('/repositories')">
-            <template #icon>
-              <span class="i-carbon-data-base" aria-hidden="true" />
-            </template>
-            View Repositories
-          </el-button>
-          <el-button @click="$router.push('/commits')">
-            <template #icon>
-              <span class="i-carbon-commit" aria-hidden="true" />
-            </template>
-            View Commits
-          </el-button>
-          <el-button @click="$router.push('/storage')">
-            <template #icon>
-              <span class="i-carbon-data-volume" aria-hidden="true" />
-            </template>
-            Browse Storage
-          </el-button>
-          <el-button @click="$router.push('/quotas')">
-            <template #icon>
-              <span class="i-carbon-meter" aria-hidden="true" />
-            </template>
-            Manage Quotas
-          </el-button>
-          <el-button @click="loadStats">
-            <template #icon>
-              <span class="i-carbon-renew" aria-hidden="true" />
-            </template>
-            Refresh Stats
-          </el-button>
+        <div v-if="counts" class="kpis" data-testid="kpis">
+          <KpiTile label="Users" :value="n(counts.users.total)" :sub="`${n(counts.orgs)} organizations`" :delta="counts.users.delta" :delta-label="store.range" :series="counts.users.series" to="/users" color="var(--color-user)" />
+          <KpiTile label="Repositories" :value="n(counts.repos.total)" :sub="`${n(counts.repos.private)} private`" :delta="counts.repos.delta" :delta-label="store.range" :series="counts.repos.series" to="/repositories" color="var(--color-repo)" />
+          <KpiTile label="Commits" :value="n(counts.commits.total)" :delta="counts.commits.delta" :delta-label="store.range" :series="counts.commits.series" to="/commits" color="var(--color-commit)" />
+          <KpiTile label="Storage" :value="formatBytes(counts.storage.total)" :sub="`${formatBytes(counts.storage.private)} private · ${formatBytes(counts.storage.public)} public`" to="/storage" />
+          <KpiTile label="LFS objects" :value="n(counts.lfs.objects)" :sub="formatBytes(counts.lfs.size)" to="/storage" />
         </div>
+
+        <div class="two">
+          <ChartCard v-if="activity" :title="`Activity · ${store.legacy ? 'last 30d' : 'last ' + store.range}`" :labels="activity.labels" :datasets="activity.datasets" :height="190" />
+          <QueueHealth v-if="!store.legacy" :queue="sections.queue" />
+        </div>
+        <div v-if="!store.legacy" class="two">
+          <RecentFeed :recent="sections.recent" :now="now" />
+          <TopRepos :top="sections.top" />
+        </div>
+        <QuickLaunch :badges="store.badges" />
       </div>
     </AdminPage>
   </AdminLayout>
 </template>
 
 <style scoped>
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
-  grid-auto-rows: 1fr;
-  gap: 24px;
-  margin-bottom: 32px;
-}
-
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 24px;
-}
-
-/* Enhanced card styling */
-:deep(.el-card) {
-  background-color: var(--bg-card);
-  border-color: var(--border-default);
-  transition: all 0.3s ease;
-}
-
-:deep(.el-card:hover) {
-  border-color: var(--border-strong);
-}
-
-:deep(.el-card__header) {
-  background-color: var(--bg-hover);
-  border-bottom-color: var(--border-default);
-  padding: 16px 20px;
-}
-
-:deep(.el-card__header .font-bold) {
-  color: var(--text-primary);
-  font-size: 15px;
-}
-
-/* Table styling */
-:deep(.el-table) {
-  background-color: var(--bg-card);
-}
-
-:deep(.el-table th) {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-  font-weight: 600;
-  border-color: var(--border-default);
-}
-
-:deep(.el-table td) {
-  color: var(--text-primary);
-  border-color: var(--border-light);
-}
-
-:deep(.el-table__body tr:hover > td) {
-  background-color: var(--bg-hover) !important;
-}
-
-/* Warning colors */
-:deep(.text-red-600) {
-  color: var(--color-error) !important;
-  font-weight: 700;
-}
-
-:deep(.text-sm.text-gray-500) {
-  color: var(--text-secondary);
-}
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fresh { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary, #6b7280); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-success); display: inline-block; }
+.fresh.stale .dot { background: var(--color-warning); }
+.fresh.bad .dot { background: var(--color-error); }
+.seg button { border: 1px solid var(--border-default); background: var(--bg-card); color: var(--text-primary); padding: 2px 10px; font-size: 12px; cursor: pointer; }
+.seg button:first-child { border-radius: 6px 0 0 6px; }
+.seg button:last-child { border-radius: 0 6px 6px 0; }
+.seg button + button { border-left: 0; }
+.seg button.on { background: var(--color-info); color: var(--admin-on-fill, #111); border-color: var(--color-info); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.two { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; margin-bottom: 16px; }
+.greyed { opacity: 0.55; filter: grayscale(0.4); transition: opacity 0.2s; }
+@media (max-width: 900px) { .two { grid-template-columns: minmax(0, 1fr); } }
 </style>

@@ -5,13 +5,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ElementPlusStubs } from "../helpers/vue";
 
 const mocks = vi.hoisted(() => ({
-  router: { push: vi.fn() },
+  router: { push: vi.fn(), replace: vi.fn() },
   adminStore: { token: "admin-token", logout: vi.fn() },
   listUsers: vi.fn(),
   getPasswordResetStatus: vi.fn(),
 }));
 
-vi.mock("vue-router", () => ({ useRouter: () => mocks.router }));
+const routeState = vi.hoisted(() => ({ query: {} }));
+vi.mock("vue-router", () => ({
+  useRouter: () => mocks.router,
+  useRoute: () => routeState,
+}));
 vi.mock("@/stores/admin", () => ({
   useAdminStore: () => mocks.adminStore,
 }));
@@ -279,5 +283,98 @@ describe("admin user password reset action", () => {
     expect(wrapper.find('[data-title="Reset password for user-1"]').exists()).toBe(
       true,
     );
+  });
+});
+
+describe("admin users opened from the Overview", () => {
+  const G = 1_000_000_000;
+  const withQuota = (id, name, used, quota, extra = {}) => ({
+    ...user(id),
+    username: name,
+    private_used_bytes: used,
+    private_quota_bytes: quota,
+    public_used_bytes: 0,
+    public_quota_bytes: null,
+    ...extra,
+  });
+  let wrapper;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.adminStore.token = "admin-token";
+    mocks.router.replace.mockReset();
+    mocks.listUsers.mockResolvedValue({
+      users: [
+        withQuota(1, "within", 10 * G, 50 * G),
+        withQuota(2, "over-private", 60 * G, 50 * G),
+        withQuota(3, "unlimited", 900 * G, null),
+        withQuota(4, "over-public", 0, null, {
+          public_used_bytes: 20 * G,
+          public_quota_bytes: 10 * G,
+        }),
+      ],
+      total: 4,
+    });
+  });
+  afterEach(() => {
+    wrapper?.unmount();
+    routeState.query = {};
+  });
+
+  it("lists everyone when opened plainly", async () => {
+    routeState.query = {};
+    wrapper = mountPage();
+    await flushPromises();
+    expect(wrapper.find('[data-testid="deep-link-banner"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain("within");
+    expect(wrapper.text()).toContain("unlimited");
+  });
+
+  it("filter=over_quota shows only users over a private or public quota, and says so", async () => {
+    routeState.query = { filter: "over_quota" };
+    wrapper = mountPage();
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="deep-link-banner"]').text()).toContain(
+      "over their storage quota",
+    );
+    expect(wrapper.text()).toContain("over-private");
+    expect(wrapper.text()).toContain("over-public");
+    expect(wrapper.text()).not.toContain("within");
+    expect(wrapper.text()).not.toContain("unlimited");
+  });
+
+  it("dismissing the banner shows everyone again and drops the parameter", async () => {
+    routeState.query = { filter: "over_quota" };
+    wrapper = mountPage();
+    await flushPromises();
+
+    wrapper.getComponent(ElementPlusStubs.ElAlert).vm.$emit("close");
+    await flushPromises();
+
+    expect(mocks.router.replace).toHaveBeenCalledWith({ path: "/users" });
+    expect(wrapper.find('[data-testid="deep-link-banner"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain("within");
+  });
+
+  it("reset=1 hints at what to do next, and dismisses the same way", async () => {
+    routeState.query = { reset: "1" };
+    wrapper = mountPage();
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="deep-link-banner"]').text()).toContain(
+      "choose Reset password on their row",
+    );
+    wrapper.getComponent(ElementPlusStubs.ElAlert).vm.$emit("close");
+    await flushPromises();
+    expect(mocks.router.replace).toHaveBeenCalledWith({ path: "/users" });
+    expect(wrapper.find('[data-testid="deep-link-banner"]').exists()).toBe(false);
+  });
+
+  it("create=1 opens the create dialog", async () => {
+    routeState.query = { create: "1" };
+    wrapper = mountPage();
+    await flushPromises();
+    expect(wrapper.find('[data-el-dialog="true"][data-title="Create New User"]').exists()).toBe(true);
   });
 });

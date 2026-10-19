@@ -1,6 +1,6 @@
 import { defineComponent, h } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ElementPlusStubs } from "../helpers/vue";
 
@@ -14,7 +14,11 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("vue-router", () => ({ useRouter: () => mocks.router }));
+const routeState = vi.hoisted(() => ({ query: {} }));
+vi.mock("vue-router", () => ({
+  useRouter: () => mocks.router,
+  useRoute: () => routeState,
+}));
 vi.mock("@/stores/admin", () => ({ useAdminStore: () => mocks.adminStore }));
 vi.mock("@/utils/api", () => ({ ...mocks.api }));
 vi.mock("@/components/AdminLayout.vue", () => ({
@@ -67,6 +71,29 @@ describe("invitations list", () => {
 
     expect(wrapper.find("[data-el-table]").exists()).toBe(true);
     expect(wrapper.find("[data-el-empty]").exists()).toBe(false);
+    wrapper.unmount();
+  });
+});
+
+describe("invitations opened from the Overview", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.api.listInvitations.mockResolvedValue({ invitations: [] });
+  });
+  afterEach(() => {
+    routeState.query = {};
+  });
+
+  it("create=1 opens the create dialog", async () => {
+    routeState.query = { create: "1" };
+    const wrapper = await mountPage();
+    expect(wrapper.findAll("[data-el-dialog]").length).toBeGreaterThan(0);
+    wrapper.unmount();
+  });
+
+  it("opens no dialog otherwise", async () => {
+    const wrapper = await mountPage();
+    expect(wrapper.find("[data-el-dialog]").exists()).toBe(false);
     wrapper.unmount();
   });
 });

@@ -1,7 +1,7 @@
 <script setup>
 import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
@@ -17,6 +17,7 @@ import { copyToClipboard } from "@/utils/clipboard";
 import dayjs from "dayjs";
 
 const router = useRouter();
+const route = useRoute();
 const compact = useCompactViewport();
 const adminStore = useAdminStore();
 const dialogVisible = ref(false);
@@ -192,6 +193,8 @@ const filteredInvitations = computed(() => {
 });
 
 onMounted(() => {
+  // /invitations?create=1: opened from the Overview or the Ctrl+K box
+  if (route.query.create === "1") dialogVisible.value = true;
   checkAuth();
   loadInvitations();
 });

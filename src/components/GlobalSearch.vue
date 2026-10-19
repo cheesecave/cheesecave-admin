@@ -64,6 +64,75 @@ const hasResults = computed(() => {
   return flatResults.value.length > 0;
 });
 
+// Below two characters the box is a command palette: pages and actions, filtered by what is typed.
+const commands = [
+  {
+    kind: "Action",
+    label: "Create user",
+    icon: "i-carbon-user-follow",
+    to: { path: "/users", query: { create: "1" } },
+  },
+  {
+    kind: "Action",
+    label: "Reset a password",
+    icon: "i-carbon-password",
+    to: { path: "/users", query: { reset: "1" } },
+  },
+  {
+    kind: "Action",
+    label: "New invitation",
+    icon: "i-carbon-email",
+    to: { path: "/invitations", query: { create: "1" } },
+  },
+  {
+    kind: "Action",
+    label: "Failed tasks, last 24 h",
+    icon: "i-carbon-warning",
+    to: { path: "/tasks", query: { status: "failed", window: "24h" } },
+  },
+  {
+    kind: "Action",
+    label: "Users over quota",
+    icon: "i-carbon-meter",
+    to: { path: "/users", query: { filter: "over_quota" } },
+  },
+  { kind: "Page", label: "Overview", icon: "i-carbon-dashboard", to: "/" },
+  { kind: "Page", label: "Health", icon: "i-carbon-activity", to: "/health" },
+  {
+    kind: "Page",
+    label: "Background Tasks",
+    icon: "i-carbon-task",
+    to: "/tasks",
+  },
+  {
+    kind: "Page",
+    label: "Storage",
+    icon: "i-carbon-data-volume",
+    to: "/storage",
+  },
+];
+const paletteMode = computed(
+  () => !(searchQuery.value && searchQuery.value.length >= 2),
+);
+const shownCommands = computed(() => {
+  const typed = (searchQuery.value || "").toLowerCase();
+  return commands.filter((c) => c.label.toLowerCase().includes(typed));
+});
+
+// One list for the keyboard: the matching commands first, then the search results.
+const navItems = computed(() => [
+  ...shownCommands.value.map((command) => ({ command })),
+  ...(paletteMode.value ? [] : flatResults.value),
+]);
+const selectedResult = computed(
+  () => flatResults.value[selectedIndex.value - shownCommands.value.length],
+);
+
+function runCommand(command) {
+  closeDialog();
+  router.push(command.to);
+}
+
 function openDialog() {
   dialogVisible.value = true;
   searchQuery.value = "";
@@ -101,6 +170,7 @@ async function performSearch() {
 }
 
 function handleSearchInput() {
+  selectedIndex.value = 0;
   // Clear existing timer
   if (searchDebounceTimer.value) {
     clearTimeout(searchDebounceTimer.value);
@@ -113,22 +183,20 @@ function handleSearchInput() {
 }
 
 function handleKeyDown(event) {
-  if (!hasResults.value) return;
+  const list = navItems.value;
+  if (!list.length) return;
 
   if (event.key === "ArrowDown") {
     event.preventDefault();
-    selectedIndex.value = Math.min(
-      selectedIndex.value + 1,
-      flatResults.value.length - 1,
-    );
+    selectedIndex.value = Math.min(selectedIndex.value + 1, list.length - 1);
   } else if (event.key === "ArrowUp") {
     event.preventDefault();
     selectedIndex.value = Math.max(selectedIndex.value - 1, 0);
   } else if (event.key === "Enter") {
     event.preventDefault();
-    if (flatResults.value[selectedIndex.value]) {
-      handleSelectResult(flatResults.value[selectedIndex.value]);
-    }
+    const item = list[selectedIndex.value];
+    if (item.command) runCommand(item.command);
+    else handleSelectResult(item);
   }
 }
 
@@ -252,170 +320,190 @@ defineExpose({ openDialog });
       </el-input>
 
       <!-- Results -->
-      <div
-        v-if="searchQuery && searchQuery.length >= 2"
-        class="results-container"
-      >
-        <div v-if="loading" class="text-center py-8 text-gray-500">
-          <div class="i-carbon-circle-dash animate-spin text-2xl mb-2" />
-          <p>Searching...</p>
-        </div>
-
-        <div v-else-if="!hasResults" class="text-center py-8 text-gray-500">
-          <div class="i-carbon-search-locate text-3xl mb-2" />
-          <p>No results found for "{{ searchQuery }}"</p>
-        </div>
-
-        <div v-else class="results-list">
-          <!-- Users Section -->
+      <div class="results-container">
+        <div v-if="paletteMode || shownCommands.length" data-testid="palette">
+          <div class="section-header">
+            <div class="i-carbon-flash text-orange-500" />
+            <span>Go to and actions</span>
+          </div>
           <div
-            v-if="
-              searchResults?.results?.users &&
-              searchResults.results.users.length > 0
-            "
-            class="result-section"
+            v-for="(c, i) in shownCommands"
+            :key="c.label"
+            class="result-item"
+            :class="{ selected: selectedIndex === i }"
+            data-testid="palette-item"
+            @click="runCommand(c)"
           >
-            <div class="section-header">
-              <div class="i-carbon-user text-blue-600" />
-              <span>Users ({{ searchResults.results.users.length }})</span>
+            <div :class="c.icon" class="text-lg" />
+            <div class="result-content">
+              <div class="result-title">{{ c.label }}</div>
             </div>
-            <div
-              v-for="(user, idx) in searchResults.results.users"
-              :key="`user-${user.id}`"
-              class="result-item"
-              :class="{
-                selected:
-                  flatResults[selectedIndex]?.type === 'user' &&
-                  flatResults[selectedIndex]?.data.id === user.id,
-              }"
-              @click="
-                handleSelectResult({
-                  type: 'user',
-                  data: user,
-                  label: user.username,
-                  sublabel: user.email,
-                })
-              "
-            >
-              <div class="i-carbon-user text-blue-600" />
-              <div class="result-content">
-                <div class="result-label">{{ user.username }}</div>
-                <div class="result-sublabel">{{ user.email }}</div>
-              </div>
-              <el-tag
-                v-if="user.email_verified"
-                type="success"
-                size="small"
-                effect="plain"
-              >
-                Verified
-              </el-tag>
-            </div>
+            <el-tag size="small" effect="plain">{{ c.kind }}</el-tag>
+          </div>
+          <p v-if="paletteMode" class="hint-text text-xs mt-2">
+            Type two or more characters to search users, repositories and
+            commits • <kbd>↑</kbd> <kbd>↓</kbd> to move • <kbd>Enter</kbd> to
+            open • <kbd>Esc</kbd> to close
+          </p>
+        </div>
+        <template v-if="!paletteMode">
+          <div v-if="loading" class="text-center py-8 text-gray-500">
+            <div class="i-carbon-circle-dash animate-spin text-2xl mb-2" />
+            <p>Searching...</p>
           </div>
 
-          <!-- Repositories Section -->
           <div
-            v-if="
-              searchResults?.results?.repositories &&
-              searchResults.results.repositories.length > 0
-            "
-            class="result-section"
+            v-else-if="!hasResults && !shownCommands.length"
+            class="text-center py-8 text-gray-500"
           >
-            <div class="section-header">
-              <div class="i-carbon-data-base text-green-600" />
-              <span
-                >Repositories ({{
-                  searchResults.results.repositories.length
-                }})</span
-              >
-            </div>
+            <div class="i-carbon-search-locate text-3xl mb-2" />
+            <p>No results found for "{{ searchQuery }}"</p>
+          </div>
+
+          <div v-else-if="hasResults" class="results-list">
+            <!-- Users Section -->
             <div
-              v-for="repo in searchResults.results.repositories"
-              :key="`repo-${repo.id}`"
-              class="result-item"
-              :class="{
-                selected:
-                  flatResults[selectedIndex]?.type === 'repo' &&
-                  flatResults[selectedIndex]?.data.id === repo.id,
-              }"
-              @click="
-                handleSelectResult({
-                  type: 'repo',
-                  data: repo,
-                  label: repo.full_id,
-                  sublabel: `${repo.repo_type} • ${repo.owner_username}`,
-                })
+              v-if="
+                searchResults?.results?.users &&
+                searchResults.results.users.length > 0
               "
+              class="result-section"
             >
-              <div class="i-carbon-data-base text-green-600" />
-              <div class="result-content">
-                <div class="result-label">{{ repo.full_id }}</div>
-                <div class="result-sublabel">
-                  {{ repo.repo_type }} • {{ repo.owner_username }}
+              <div class="section-header">
+                <div class="i-carbon-user text-blue-600" />
+                <span>Users ({{ searchResults.results.users.length }})</span>
+              </div>
+              <div
+                v-for="(user, idx) in searchResults.results.users"
+                :key="`user-${user.id}`"
+                class="result-item"
+                :class="{
+                  selected:
+                    selectedResult?.type === 'user' &&
+                    selectedResult?.data.id === user.id,
+                }"
+                @click="
+                  handleSelectResult({
+                    type: 'user',
+                    data: user,
+                    label: user.username,
+                    sublabel: user.email,
+                  })
+                "
+              >
+                <div class="i-carbon-user text-blue-600" />
+                <div class="result-content">
+                  <div class="result-label">{{ user.username }}</div>
+                  <div class="result-sublabel">{{ user.email }}</div>
+                </div>
+                <el-tag
+                  v-if="user.email_verified"
+                  type="success"
+                  size="small"
+                  effect="plain"
+                >
+                  Verified
+                </el-tag>
+              </div>
+            </div>
+
+            <!-- Repositories Section -->
+            <div
+              v-if="
+                searchResults?.results?.repositories &&
+                searchResults.results.repositories.length > 0
+              "
+              class="result-section"
+            >
+              <div class="section-header">
+                <div class="i-carbon-data-base text-green-600" />
+                <span
+                  >Repositories ({{
+                    searchResults.results.repositories.length
+                  }})</span
+                >
+              </div>
+              <div
+                v-for="repo in searchResults.results.repositories"
+                :key="`repo-${repo.id}`"
+                class="result-item"
+                :class="{
+                  selected:
+                    selectedResult?.type === 'repo' &&
+                    selectedResult?.data.id === repo.id,
+                }"
+                @click="
+                  handleSelectResult({
+                    type: 'repo',
+                    data: repo,
+                    label: repo.full_id,
+                    sublabel: `${repo.repo_type} • ${repo.owner_username}`,
+                  })
+                "
+              >
+                <div class="i-carbon-data-base text-green-600" />
+                <div class="result-content">
+                  <div class="result-label">{{ repo.full_id }}</div>
+                  <div class="result-sublabel">
+                    {{ repo.repo_type }} • {{ repo.owner_username }}
+                  </div>
+                </div>
+                <el-tag
+                  v-if="repo.private"
+                  type="warning"
+                  size="small"
+                  effect="plain"
+                >
+                  Private
+                </el-tag>
+              </div>
+            </div>
+
+            <!-- Commits Section -->
+            <div
+              v-if="
+                searchResults?.results?.commits &&
+                searchResults.results.commits.length > 0
+              "
+              class="result-section"
+            >
+              <div class="section-header">
+                <div class="i-carbon-version text-orange-600" />
+                <span
+                  >Commits ({{ searchResults.results.commits.length }})</span
+                >
+              </div>
+              <div
+                v-for="commit in searchResults.results.commits"
+                :key="`commit-${commit.id}`"
+                class="result-item"
+                :class="{
+                  selected:
+                    selectedResult?.type === 'commit' &&
+                    selectedResult?.data.id === commit.id,
+                }"
+                @click="
+                  handleSelectResult({
+                    type: 'commit',
+                    data: commit,
+                    label: commit.message,
+                    sublabel: `${commit.username} • ${commit.commit_id.substring(0, 8)}`,
+                  })
+                "
+              >
+                <div class="i-carbon-version text-orange-600" />
+                <div class="result-content">
+                  <div class="result-label">{{ commit.message }}</div>
+                  <div class="result-sublabel">
+                    {{ commit.username }} •
+                    {{ commit.commit_id.substring(0, 8) }} •
+                    {{ commit.repo_full_id }}
+                  </div>
                 </div>
               </div>
-              <el-tag
-                v-if="repo.private"
-                type="warning"
-                size="small"
-                effect="plain"
-              >
-                Private
-              </el-tag>
             </div>
           </div>
-
-          <!-- Commits Section -->
-          <div
-            v-if="
-              searchResults?.results?.commits &&
-              searchResults.results.commits.length > 0
-            "
-            class="result-section"
-          >
-            <div class="section-header">
-              <div class="i-carbon-version text-orange-600" />
-              <span>Commits ({{ searchResults.results.commits.length }})</span>
-            </div>
-            <div
-              v-for="commit in searchResults.results.commits"
-              :key="`commit-${commit.id}`"
-              class="result-item"
-              :class="{
-                selected:
-                  flatResults[selectedIndex]?.type === 'commit' &&
-                  flatResults[selectedIndex]?.data.id === commit.id,
-              }"
-              @click="
-                handleSelectResult({
-                  type: 'commit',
-                  data: commit,
-                  label: commit.message,
-                  sublabel: `${commit.username} • ${commit.commit_id.substring(0, 8)}`,
-                })
-              "
-            >
-              <div class="i-carbon-version text-orange-600" />
-              <div class="result-content">
-                <div class="result-label">{{ commit.message }}</div>
-                <div class="result-sublabel">
-                  {{ commit.username }} •
-                  {{ commit.commit_id.substring(0, 8) }} •
-                  {{ commit.repo_full_id }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Hint -->
-      <div v-else class="hint-text">
-        <p>Type at least 2 characters to search</p>
-        <p class="text-xs mt-2">
-          <kbd>↑</kbd> <kbd>↓</kbd> to navigate • <kbd>Enter</kbd> to select •
-          <kbd>Esc</kbd> to close
-        </p>
+        </template>
       </div>
     </div>
   </el-dialog>

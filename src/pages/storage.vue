@@ -1,7 +1,7 @@
 <script setup>
 import { getApiErrorMessage } from "@/utils/api-error";
-import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
@@ -21,6 +21,11 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
 
 const router = useRouter();
+const route = useRoute();
+// /storage?tab=orphans|lfs: scroll to that maintenance section and mark it for a moment.
+const DEEP_SECTIONS = { orphans: "storage-orphans", lfs: "storage-lfs" };
+const highlighted = ref(null);
+let highlightTimer = null;
 const adminStore = useAdminStore();
 const objects = ref([]);
 const loading = ref(false);
@@ -212,7 +217,18 @@ async function confirmDeleteFolder(folderName) {
 
 onMounted(() => {
   loadObjects(""); // Load root directly
+  const tab = route.query.tab;
+  if (DEEP_SECTIONS[tab]) {
+    highlighted.value = tab;
+    nextTick(() =>
+      document
+        .getElementById(DEEP_SECTIONS[tab])
+        .scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
+    highlightTimer = setTimeout(() => (highlighted.value = null), 2500);
+  }
 });
+onBeforeUnmount(() => clearTimeout(highlightTimer));
 </script>
 
 <template>
@@ -390,7 +406,9 @@ onMounted(() => {
       </el-card>
 
       <OrphanLakefsRepos
+        id="storage-orphans"
         class="mt-6"
+        :class="{ 'deep-link-highlight': highlighted === 'orphans' }"
         :token="adminStore.token"
         @error="
           ElMessage.error(getApiErrorMessage($event, 'LakeFS audit failed'))
@@ -398,7 +416,9 @@ onMounted(() => {
       />
 
       <LfsReconciliation
+        id="storage-lfs"
         class="mt-6"
+        :class="{ 'deep-link-highlight': highlighted === 'lfs' }"
         :token="adminStore.token"
         @error="
           ElMessage.error(
@@ -421,6 +441,11 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.deep-link-highlight {
+  outline: 2px solid var(--color-info);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
 .bucket-card {
   background-color: var(--bg-card);
   transition: all 0.3s ease;

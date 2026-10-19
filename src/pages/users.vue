@@ -1,7 +1,7 @@
 <script setup>
 import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
@@ -22,6 +22,15 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
 
 const router = useRouter();
+const route = useRoute();
+// Deep links from the Overview and the Ctrl+K box: /users?filter=over_quota, ?create=1, ?reset=1.
+const quotaFilter = ref(route.query.filter === "over_quota");
+const resetHint = ref(route.query.reset === "1");
+function dismissDeepLink() {
+  quotaFilter.value = false;
+  resetHint.value = false;
+  router.replace({ path: "/users" });
+}
 const compact = useCompactViewport();
 const adminStore = useAdminStore();
 const users = ref([]);
@@ -141,6 +150,16 @@ const sortedUsers = computed(() => {
 
   return sorted;
 });
+
+const visibleUsers = computed(() =>
+  quotaFilter.value
+    ? sortedUsers.value.filter(
+        (u) =>
+          isQuotaExceeded(u.private_used_bytes, u.private_quota_bytes) ||
+          isQuotaExceeded(u.public_used_bytes, u.public_quota_bytes),
+      )
+    : sortedUsers.value,
+);
 
 // Create user form
 const createForm = ref({
@@ -423,6 +442,7 @@ function isQuotaExceeded(used, quota) {
 }
 
 onMounted(() => {
+  if (route.query.create === "1") dialogVisible.value = true;
   loadUsers();
 });
 </script>
@@ -445,6 +465,28 @@ onMounted(() => {
       </AdminPageHeader>
 
       <!-- Search Bar -->
+      <el-alert
+        v-if="quotaFilter"
+        type="warning"
+        show-icon
+        class="mb-4"
+        data-testid="deep-link-banner"
+        @close="dismissDeepLink"
+      >
+        Showing the users on this page who are over their storage quota,
+        opened from the Overview.
+      </el-alert>
+      <el-alert
+        v-if="resetHint"
+        type="info"
+        show-icon
+        class="mb-4"
+        data-testid="deep-link-banner"
+        @close="dismissDeepLink"
+      >
+        Pick the user, then choose Reset password on their row.
+      </el-alert>
+
       <el-card class="mb-4">
         <div class="flex gap-4 items-center flex-wrap">
           <el-input
@@ -480,7 +522,7 @@ onMounted(() => {
         />
         <el-table
           v-else
-          :data="sortedUsers"
+          :data="visibleUsers"
           v-loading="loading"
           stripe
           @sort-change="handleSortChange"
