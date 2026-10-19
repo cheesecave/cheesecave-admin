@@ -190,4 +190,139 @@ describe("GlobalSearch as a command palette", () => {
     await type("");
     expect(wrapper.find('[data-testid="palette"]').exists()).toBe(true);
   });
+
+  describe("from two characters on, commands stay above the search results", () => {
+    const searchFor = async (text) => {
+      await type(text);
+      await vi.advanceTimersByTimeAsync(300);
+      await flushPromises();
+    };
+    const row = (n) => wrapper.findAll(".result-item")[n];
+
+    it("shows the matching commands above the results of the search", async () => {
+      await open();
+      await searchFor("fail");
+
+      expect(labels()).toEqual(["Failed tasks, last 24 h"]);
+      expect(wrapper.text()).toContain("mai_lin");
+      const html = wrapper.html();
+      expect(html.indexOf("Failed tasks, last 24 h")).toBeLessThan(
+        html.indexOf("mai_lin"),
+      );
+      expect(wrapper.get('[data-testid="palette"]').text()).not.toContain(
+        "Type two or more characters",
+      );
+    });
+
+    it("matches the typed text anywhere in the label, ignoring case", async () => {
+      await open();
+      await searchFor("OVER");
+      expect(labels()).toEqual(["Users over quota", "Overview"]);
+    });
+
+    it("shows the commands while the search is still running", async () => {
+      mocks.globalSearch.mockReset().mockImplementation(() => new Promise(() => {}));
+      await open();
+      await searchFor("fail");
+      expect(labels()).toEqual(["Failed tasks, last 24 h"]);
+      expect(wrapper.text()).toContain("Searching...");
+    });
+
+    it("keeps the commands, and no 'No results' line, when only the commands match", async () => {
+      mocks.globalSearch.mockResolvedValue({ results: {} });
+      await open();
+      await searchFor("fail");
+
+      expect(labels()).toEqual(["Failed tasks, last 24 h"]);
+      expect(wrapper.text()).not.toContain("No results found");
+    });
+
+    it("says no results only when neither commands nor search have anything", async () => {
+      mocks.globalSearch.mockResolvedValue({ results: {} });
+      await open();
+      await searchFor("qzx");
+
+      expect(wrapper.find('[data-testid="palette"]').exists()).toBe(false);
+      expect(wrapper.text()).toContain('No results found for "qzx"');
+    });
+
+    it("selects commands first, then the search results, with one selected index", async () => {
+      await open();
+      await searchFor("fail");
+      expect(row(0).classes()).toContain("selected");
+      expect(row(1).classes()).not.toContain("selected");
+
+      await press("ArrowDown");
+      expect(row(0).classes()).not.toContain("selected");
+      expect(row(1).classes()).toContain("selected");
+      expect(row(1).text()).toContain("mai_lin");
+
+      await press("ArrowDown");
+      expect(row(1).classes()).toContain("selected");
+      await press("ArrowUp");
+      expect(row(0).classes()).toContain("selected");
+    });
+
+    it("Enter on the selected command navigates like a click", async () => {
+      await open();
+      await searchFor("fail");
+      await press("Enter");
+
+      expect(mocks.router.push).toHaveBeenCalledWith({
+        path: "/tasks",
+        query: { status: "failed", window: "24h" },
+      });
+      expect(wrapper.find('[data-testid="palette"]').exists()).toBe(false);
+    });
+
+    it("Enter after moving down opens the search result instead", async () => {
+      await open();
+      await searchFor("fail");
+      await press("ArrowDown");
+      await press("Enter");
+      expect(mocks.router.push).toHaveBeenCalledWith("/users");
+    });
+
+    it("clicking a command in the search view navigates", async () => {
+      await open();
+      await searchFor("fail");
+      await wrapper.get('[data-testid="palette-item"]').trigger("click");
+      expect(mocks.router.push).toHaveBeenCalledWith({
+        path: "/tasks",
+        query: { status: "failed", window: "24h" },
+      });
+    });
+
+    it("keyboard works on commands alone when the search finds nothing", async () => {
+      mocks.globalSearch.mockResolvedValue({ results: {} });
+      await open();
+      await searchFor("fail");
+      await press("ArrowDown");
+      await press("Enter");
+      expect(mocks.router.push).toHaveBeenCalledWith({
+        path: "/tasks",
+        query: { status: "failed", window: "24h" },
+      });
+    });
+
+    it("selects repository and commit results by the same combined index", async () => {
+      mocks.globalSearch.mockResolvedValue({
+        results: {
+          users: [USER],
+          repositories: [{ id: 3, full_id: "o/fail-repo", repo_type: "model", owner_username: "o" }],
+          commits: [{ id: 4, commit_id: "abcdef123456", message: "fail", username: "o" }],
+        },
+      });
+      await open();
+      await searchFor("fail");
+      await press("ArrowDown");
+      await press("ArrowDown");
+      expect(row(2).classes()).toContain("selected");
+      expect(row(2).text()).toContain("o/fail-repo");
+      await press("ArrowDown");
+      expect(row(3).classes()).toContain("selected");
+      await press("Enter");
+      expect(mocks.router.push).toHaveBeenCalledWith("/commits");
+    });
+  });
 });

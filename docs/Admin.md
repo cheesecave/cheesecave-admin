@@ -99,7 +99,7 @@ The landing page answers three questions, top to bottom: **is everything running
 
 The data refreshes by itself (every 15 s, 30 s or 1 min, or manually) while the tab is visible; the header shows when it was last updated and marks stale data. If a refresh fails, the last good data stays on screen, greyed. The sidebar badges (Background Tasks, Health, Quota Overview, Storage) use the same refresh, so they are visible from every page.
 
-**Ctrl+K** opens a box that lists pages and actions before you type, and searches users, repositories and commits once you type two characters.
+**Ctrl+K** opens a box that lists pages and actions before you type. From two characters on it also searches users, repositories and commits, and keeps the pages and actions whose name contains what you typed (for example `fail` finds "Failed tasks, last 24 h") above the search results. ↑ and ↓ move through the actions and then the results as one list, and Enter opens the selected one.
 
 An older backend without `GET /admin/api/overview` is detected automatically; the page then shows a reduced view built from `/stats/detailed` and `/stats/timeseries`.
 
