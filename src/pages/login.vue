@@ -1,6 +1,6 @@
 <script setup>
 import { getApiErrorMessage } from "@/utils/api-error";
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { safeRedirect } from "@/utils/login-redirect";
 import { useAdminStore } from "@/stores/admin";
@@ -27,7 +27,34 @@ siteBrandingStore.setPageTitle("Sign in");
 const tokenInput = ref("");
 const loading = ref(false);
 
+// After a few wrong tokens the backend answers 429 with Retry-After: show the wait and keep the button off until it is over.
+const waitSeconds = ref(0);
+let waitTimer = null;
+
+const waitText = computed(() => {
+  const total = waitSeconds.value;
+  if (total < 60) return `${total} s`;
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+});
+
+function startWait(error) {
+  const header = Number(error.response?.headers?.["retry-after"]);
+  const body = Number(error.response?.data?.detail?.retry_after);
+  waitSeconds.value = Math.max(1, Math.ceil(header || body || 1));
+  clearInterval(waitTimer);
+  waitTimer = setInterval(() => {
+    waitSeconds.value -= 1;
+    if (waitSeconds.value <= 0) {
+      clearInterval(waitTimer);
+      waitTimer = null;
+    }
+  }, 1000);
+}
+
+onBeforeUnmount(() => clearInterval(waitTimer));
+
 async function handleLogin() {
+  if (waitSeconds.value > 0) return;
   if (!tokenInput.value) {
     ElMessage.error("Please enter admin token");
     return;
@@ -46,7 +73,8 @@ async function handleLogin() {
     }
   } catch (error) {
     console.error("Login error:", error);
-    ElMessage.error(getApiErrorMessage(error, "Login failed"));
+    if (error.response?.status === 429) startWait(error);
+    else ElMessage.error(getApiErrorMessage(error, "Login failed"));
     tokenInput.value = "";
   } finally {
     loading.value = false;
@@ -86,10 +114,21 @@ async function handleLogin() {
           </el-input>
         </el-form-item>
 
+        <div
+          v-if="waitSeconds > 0"
+          class="login-wait"
+          role="alert"
+          data-testid="login-wait"
+        >
+          <strong>Too many failed attempts.</strong>
+          Try again in {{ waitText }}.
+        </div>
+
         <el-button
           type="primary"
           size="large"
           :loading="loading"
+          :disabled="waitSeconds > 0"
           native-type="submit"
           class="w-full"
         >
@@ -158,5 +197,14 @@ html.dark .login-card {
 code {
   font-family: "Courier New", monospace;
   font-size: 12px;
+}
+.login-wait {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--el-color-danger-light-5);
+  border-radius: 4px;
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+  font-size: 14px;
 }
 </style>
