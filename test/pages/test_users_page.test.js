@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   router: { push: vi.fn() },
   adminStore: { token: "admin-token", logout: vi.fn() },
   listUsers: vi.fn(),
+  getPasswordResetStatus: vi.fn(),
 }));
 
 vi.mock("vue-router", () => ({ useRouter: () => mocks.router }));
@@ -21,6 +22,9 @@ vi.mock("@/utils/api", () => ({
   deleteUser: vi.fn(),
   setEmailVerification: vi.fn(),
   updateUserQuota: vi.fn(),
+  getPasswordResetStatus: (...args) => mocks.getPasswordResetStatus(...args),
+  createPasswordResetLink: vi.fn(),
+  revokePasswordResetLink: vi.fn(),
   formatBytes: (bytes) => String(bytes ?? "Unlimited"),
 }));
 vi.mock("@/components/AdminLayout.vue", () => ({
@@ -231,5 +235,49 @@ describe("admin user management pagination", () => {
       false,
     );
     expect(wrapper.text()).toContain("user-1");
+  });
+});
+
+describe("admin user password reset action", () => {
+  let wrapper;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.adminStore.token = "admin-token";
+    mocks.listUsers.mockResolvedValue({
+      users: [user(1), user(2, true)],
+      total: 2,
+    });
+    mocks.getPasswordResetStatus.mockResolvedValue({
+      active: false,
+      default: "1h",
+      choices: [{ key: "1h", seconds: 3600, label: "1 hour" }],
+    });
+  });
+
+  afterEach(() => wrapper?.unmount());
+
+  it("offers Reset password for users, not organizations, and opens the dialog", async () => {
+    wrapper = mountPage();
+    await flushPromises();
+
+    const resets = wrapper
+      .findAll("button")
+      .filter((b) => b.text().includes("Reset password"));
+    expect(resets).toHaveLength(1);
+    expect(wrapper.find('[data-title="Reset password for user-1"]').exists()).toBe(
+      false,
+    );
+
+    await resets[0].trigger("click");
+    await flushPromises();
+
+    expect(mocks.getPasswordResetStatus).toHaveBeenCalledWith(
+      "admin-token",
+      "user-1",
+    );
+    expect(wrapper.find('[data-title="Reset password for user-1"]').exists()).toBe(
+      true,
+    );
   });
 });

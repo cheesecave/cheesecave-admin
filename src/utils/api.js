@@ -217,6 +217,45 @@ export async function updateUserQuota(
   return response.data;
 }
 
+/**
+ * Password reset link status and the expiry choices the server offers
+ * @param {string} token - Admin token
+ * @param {string} username - Username
+ * @returns {Promise<Object>} {active, created_at, expires_at, default, choices}
+ */
+export async function getPasswordResetStatus(token, username) {
+  const client = createAdminClient(token);
+  const response = await client.get(`/users/${username}/password-reset-link`);
+  return response.data;
+}
+
+/**
+ * Issue a one-time password reset link (replaces an unused one)
+ * @param {string} token - Admin token
+ * @param {string} username - Username
+ * @param {string} ttl - Expiry choice key, e.g. "1h"
+ * @returns {Promise<Object>} {url, ttl, created_at, expires_at}
+ */
+export async function createPasswordResetLink(token, username, ttl) {
+  const client = createAdminClient(token);
+  const response = await client.post(`/users/${username}/password-reset-link`, {
+    ttl,
+  });
+  return response.data;
+}
+
+/**
+ * Withdraw the unused password reset link
+ * @param {string} token - Admin token
+ * @param {string} username - Username
+ * @returns {Promise<Object>} {revoked}
+ */
+export async function revokePasswordResetLink(token, username) {
+  const client = createAdminClient(token);
+  const response = await client.delete(`/users/${username}/password-reset-link`);
+  return response.data;
+}
+
 // ===== Quota Management =====
 
 /**

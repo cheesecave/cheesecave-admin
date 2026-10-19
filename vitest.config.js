@@ -82,6 +82,7 @@ export default defineConfig({
         "src/composables/useCompactViewport.js",
         "src/utils/clipboard.js",
         "src/utils/form-rules.js",
+        "src/components/users/PasswordResetDialog.vue",
         "src/utils/login-redirect.js",
       ],
       exclude: [
