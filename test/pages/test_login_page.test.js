@@ -193,4 +193,102 @@ describe("admin login page", () => {
     expect(input.element.value).toBe("");
     expect(mocks.router.push).not.toHaveBeenCalledWith("/");
   });
+
+  describe("when the backend asks the client to wait (429)", () => {
+    const tooMany = (seconds, { header = true, detail = true } = {}) => ({
+      response: {
+        status: 429,
+        headers: header ? { "retry-after": String(seconds) } : {},
+        data: detail
+          ? {
+              detail: {
+                error: "Too many failed attempts",
+                retry_after: seconds,
+              },
+            }
+          : {},
+      },
+    });
+
+    async function submitWith(wrapper, error) {
+      mocks.adminStore.login.mockRejectedValueOnce(error);
+      await wrapper.get('input[placeholder="Admin Token"]').setValue("a-token");
+      await wrapper.get("form").trigger("submit");
+      await flushPromises();
+    }
+
+    const notice = (wrapper) => wrapper.find('[data-testid="login-wait"]');
+    const loginButton = (wrapper) => wrapper.get('button[type="submit"]');
+
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it("shows a countdown, disables the button and enables it again when the wait is over", async () => {
+      const wrapper = mountPage();
+      await submitWith(wrapper, tooMany(3));
+
+      expect(notice(wrapper).text()).toContain("Too many failed attempts");
+      expect(notice(wrapper).text()).toContain("3 s");
+      expect(notice(wrapper).attributes("role")).toBe("alert");
+      expect(loginButton(wrapper).attributes("disabled")).toBeDefined();
+
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(notice(wrapper).text()).toContain("2 s");
+      await vi.advanceTimersByTimeAsync(2000);
+
+      expect(notice(wrapper).exists()).toBe(false);
+      expect(loginButton(wrapper).attributes("disabled")).toBeUndefined();
+    });
+
+    it("counts long waits in minutes and seconds", async () => {
+      const wrapper = mountPage();
+      await submitWith(wrapper, tooMany(125));
+
+      expect(notice(wrapper).text()).toContain("2:05");
+    });
+
+    it("takes the wait from the body when the header is missing, and falls back to a second", async () => {
+      const wrapper = mountPage();
+      await submitWith(wrapper, tooMany(7, { header: false }));
+      expect(notice(wrapper).text()).toContain("7 s");
+      wrapper.unmount();
+
+      const other = mountPage();
+      await submitWith(other, tooMany(0, { header: false, detail: false }));
+      expect(notice(other).text()).toContain("1 s");
+    });
+
+    it("does not submit while waiting, and a later wrong token restarts the countdown", async () => {
+      const wrapper = mountPage();
+      await submitWith(wrapper, tooMany(2));
+      mocks.adminStore.login.mockClear();
+
+      await wrapper.get("form").trigger("submit"); // the form can still be submitted by Enter
+      await flushPromises();
+      expect(mocks.adminStore.login).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(2000);
+      await submitWith(wrapper, tooMany(4));
+      expect(notice(wrapper).text()).toContain("4 s");
+    });
+
+    it("stops counting when the page goes away", async () => {
+      const wrapper = mountPage();
+      await submitWith(wrapper, tooMany(5));
+      const pending = vi.getTimerCount();
+      wrapper.unmount();
+
+      expect(vi.getTimerCount()).toBeLessThan(pending);
+    });
+
+    it("keeps the usual message for other errors", async () => {
+      const wrapper = mountPage();
+      await submitWith(wrapper, {
+        response: { status: 500, data: { detail: { error: "boom" } } },
+      });
+
+      expect(notice(wrapper).exists()).toBe(false);
+      expect(loginButton(wrapper).attributes("disabled")).toBeUndefined();
+    });
+  });
 });
