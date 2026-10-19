@@ -300,7 +300,7 @@ const OUTCOME_TAG = {
 }
 
 .error-text {
-  color: var(--el-color-danger);
+  color: var(--admin-text-danger);
 }
 
 .timeline {
@@ -367,6 +367,6 @@ const OUTCOME_TAG = {
   margin: 4px 0 0;
   font-size: 12px;
   white-space: pre-wrap;
-  color: var(--el-color-danger);
+  color: var(--admin-text-danger);
 }
 </style>

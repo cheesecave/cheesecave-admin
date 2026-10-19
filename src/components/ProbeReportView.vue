@@ -242,12 +242,12 @@ defineProps({
 }
 
 .probe-attempt-error {
-  color: var(--el-color-danger, #f56c6c);
+  color: var(--admin-text-danger);
 }
 
 .probe-attempt-xerror {
   font-size: 12px;
-  color: var(--el-color-warning-dark-2, #b88230);
+  color: var(--admin-text-warning);
 }
 
 .probe-attempt-ms {
@@ -282,7 +282,7 @@ defineProps({
 
 .probe-attempt-body summary {
   cursor: pointer;
-  color: var(--el-color-primary, #409eff);
+  color: var(--admin-text-primary);
 }
 
 .probe-attempt-body pre {
@@ -297,7 +297,7 @@ defineProps({
 .probe-attempt-error-detail {
   margin-top: 6px;
   font-size: 12px;
-  color: var(--el-color-danger, #f56c6c);
+  color: var(--admin-text-danger);
 }
 
 .probe-label {

@@ -94,7 +94,7 @@ const spark = computed(() => {
   min-height: 18px;
 }
 .delta.up {
-  color: var(--color-success);
+  color: var(--admin-text-success);
 }
 .muted {
   color: var(--text-secondary, #6b7280);

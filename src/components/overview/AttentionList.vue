@@ -123,7 +123,7 @@ header {
 }
 .go {
   margin-left: auto;
-  color: var(--color-info);
+  color: var(--admin-text-primary);
   font-size: 13px;
   white-space: nowrap;
   display: inline-flex;
@@ -138,7 +138,7 @@ header {
   color: var(--text-primary);
 }
 .ok {
-  color: var(--color-success);
+  color: var(--admin-text-success);
   font-size: 18px;
 }
 .muted {

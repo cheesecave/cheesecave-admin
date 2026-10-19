@@ -106,7 +106,7 @@ a.chip:hover {
 }
 .bad,
 .state {
-  color: var(--color-error);
+  color: var(--admin-text-danger);
   font-weight: 600;
 }
 .sep {

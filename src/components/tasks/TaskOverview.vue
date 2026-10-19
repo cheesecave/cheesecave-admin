@@ -381,7 +381,7 @@ function relative(iso) {
 
 .reasons .degraded {
   background: var(--el-color-warning-light-9);
-  color: var(--el-color-warning-dark-2);
+  color: var(--admin-text-warning);
 }
 
 .reasons .degraded .dot {
@@ -390,7 +390,7 @@ function relative(iso) {
 
 .reasons .unhealthy {
   background: var(--el-color-danger-light-9);
-  color: var(--el-color-danger-dark-2);
+  color: var(--admin-text-danger);
 }
 
 .reasons .unhealthy .dot {
@@ -446,18 +446,18 @@ function relative(iso) {
 
 .tile.ok .tile-value,
 .kind-rate.ok {
-  color: var(--el-color-success);
+  color: var(--admin-text-success);
 }
 
 .tile.warn .tile-value,
 .kind-rate.warn {
-  color: var(--el-color-warning);
+  color: var(--admin-text-warning);
 }
 
 .tile.bad .tile-value,
 .kind-rate.bad,
 .text-bad {
-  color: var(--el-color-danger);
+  color: var(--admin-text-danger);
 }
 
 .kind-rate.muted {
@@ -621,7 +621,7 @@ function relative(iso) {
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
-  color: var(--el-color-danger);
+  color: var(--admin-text-danger);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -665,6 +665,6 @@ function relative(iso) {
 
 .chip:hover {
   border-color: var(--el-color-primary);
-  color: var(--el-color-primary);
+  color: var(--admin-text-primary);
 }
 </style>

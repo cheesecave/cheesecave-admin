@@ -154,26 +154,30 @@ function rowClass({ row }) {
 
 .summary-pill {
   --pill: var(--el-color-info);
+  --pill-text: var(--admin-text-info);
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 4px 12px;
   border-radius: 999px;
   font-size: 13px;
-  color: var(--pill);
+  color: var(--pill-text);
   background: color-mix(in srgb, var(--pill) 10%, transparent);
 }
 
 .summary-pill.success {
   --pill: var(--el-color-success);
+  --pill-text: var(--admin-text-success);
 }
 
 .summary-pill.warning {
   --pill: var(--el-color-warning);
+  --pill-text: var(--admin-text-warning);
 }
 
 .summary-pill.danger {
   --pill: var(--el-color-danger);
+  --pill-text: var(--admin-text-danger);
 }
 
 .summary-pill .dot {
@@ -205,11 +209,11 @@ function rowClass({ row }) {
 }
 
 .ok {
-  color: var(--el-color-success);
+  color: var(--admin-text-success);
 }
 
 .bad {
-  color: var(--el-color-danger);
+  color: var(--admin-text-danger);
 }
 
 .task-link {

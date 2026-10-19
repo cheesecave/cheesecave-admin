@@ -166,7 +166,7 @@ kbd {
   font-size: 14px;
 }
 .m:hover {
-  color: var(--color-info);
+  color: var(--admin-text-primary);
 }
 .b {
   border-radius: 999px;

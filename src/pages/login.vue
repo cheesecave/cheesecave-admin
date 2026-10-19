@@ -204,7 +204,7 @@ code {
   border: 1px solid var(--el-color-danger-light-5);
   border-radius: 4px;
   background: var(--el-color-danger-light-9);
-  color: var(--el-color-danger);
+  color: var(--admin-text-danger);
   font-size: 14px;
 }
 </style>

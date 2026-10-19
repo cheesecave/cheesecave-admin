@@ -1,48 +1,300 @@
 /*
-  Light-theme palette that meets WCAG AA (4.5:1) for white text on filled buttons, coloured text on
-  white and on the page, and tag text on its tint. Element Plus's defaults (primary #409eff on white is
-  2.78:1) do not. The dark theme keeps Element Plus's own colours, so every rule here is limited to
-  html:not(.dark). Tints follow Element Plus's scheme (light-N = base mixed with white) except light-3,
-  the hover colour of filled buttons, which is mixed only 12% so white text stays readable on hover.
+  Keeps Element Plus's own bright colours (the green, red, orange and blue the admin always had) and makes
+  the text on and in them readable instead of darkening the colours themselves:
+
+  - Filled buttons, dark tags, badges and the checked radio button keep their bright fill and carry dark
+    text (--admin-on-fill), which reads at 6 to 9:1 on every fill. White on #67c23a or #f56c6c is 2.2 to 2.9:1.
+    The pressed state is set back to the fill: Element Plus's dark-2 would be too dark for dark text.
+  - Coloured text (tags, alerts, messages, links, plain and text buttons, and the components that colour
+    text themselves) uses --admin-text-<type>, the same hue mixed with black until it reads at 4.5:1 on white,
+    on the page (#f5f5f5) and on the type's own tint.
+  - The dark theme keeps the bright colours as text (they are right on a dark page).
+
+  An earlier version redefined --el-color-* and every tint of them for the whole admin, which turned every
+  green, red, orange and blue (buttons, tags, alerts, tiles) into a dark shade. Nothing here redefines them.
 */
 
 html:not(.dark) {
-  --el-color-primary: #1d5bd1;
-  --el-color-primary-dark-2: #1749a7;
-  --el-color-primary-light-3: #386fd7;
-  --el-color-primary-light-5: #8eade8;
-  --el-color-primary-light-7: #bbcef1;
-  --el-color-primary-light-8: #d2def6;
-  --el-color-primary-light-9: #e8effa;
-  --el-color-success: #2a7230;
-  --el-color-success-dark-2: #225b26;
-  --el-color-success-light-3: #448349;
-  --el-color-success-light-5: #94b898;
-  --el-color-success-light-7: #bfd5c1;
-  --el-color-success-light-8: #d4e3d6;
-  --el-color-success-light-9: #eaf1ea;
-  --el-color-warning: #a64b08;
-  --el-color-warning-dark-2: #853c06;
-  --el-color-warning-light-3: #b16126;
-  --el-color-warning-light-5: #d2a584;
-  --el-color-warning-light-7: #e4c9b5;
-  --el-color-warning-light-8: #eddbce;
-  --el-color-warning-light-9: #f6ede6;
-  --el-color-danger: #b92a2a;
-  --el-color-danger-dark-2: #942222;
-  --el-color-danger-light-3: #c14444;
-  --el-color-danger-light-5: #dc9494;
-  --el-color-danger-light-7: #eabfbf;
-  --el-color-danger-light-8: #f1d4d4;
-  --el-color-danger-light-9: #f8eaea;
-  --el-color-info: #565b62;
-  --el-color-info-dark-2: #45494e;
-  --el-color-info-light-3: #6a6f75;
-  --el-color-info-light-5: #aaadb0;
-  --el-color-info-light-7: #ccced0;
-  --el-color-info-light-8: #dddee0;
-  --el-color-info-light-9: #eeefef;
+  --admin-on-fill: #111111;
+  --admin-text-primary: #2b6aab;
+  --admin-text-success: #3f7623;
+  --admin-text-warning: #8a6124;
+  --admin-text-danger: #a74949;
+  --admin-text-info: #65676b;
   --el-text-color-secondary: #5f6368;
+}
+
+/* primary */
+html:not(.dark) .el-button--primary:not(.is-plain):not(.is-text):not(.is-link) {
+  --el-button-text-color: var(--admin-on-fill);
+  --el-button-hover-text-color: var(--admin-on-fill);
+  --el-button-active-bg-color: var(--el-color-primary);
+  --el-button-active-border-color: var(--el-color-primary);
+}
+
+html:not(.dark) .el-button--primary.is-plain {
+  --el-button-text-color: var(--admin-text-primary);
+  --el-button-hover-text-color: var(--admin-on-fill);
+  --el-button-active-text-color: var(--admin-on-fill);
+  --el-button-active-bg-color: var(--el-color-primary);
+  --el-button-active-border-color: var(--el-color-primary);
+}
+
+html:not(.dark) .el-button--primary.is-text,
+html:not(.dark) .el-button--primary.is-link {
+  --el-button-text-color: var(--admin-text-primary);
+  --el-button-hover-text-color: var(--admin-text-primary);
+  --el-button-active-color: var(--admin-text-primary);
+}
+
+html:not(.dark) .el-tag--primary.el-tag--light,
+html:not(.dark) .el-tag--primary.el-tag--plain {
+  --el-tag-text-color: var(--admin-text-primary);
+}
+
+html:not(.dark) .el-tag--dark.el-tag--primary {
+  --el-tag-text-color: var(--admin-on-fill);
+}
+
+html:not(.dark) .el-alert--primary.is-light {
+  color: var(--admin-text-primary);
+}
+
+html:not(.dark) .el-alert--primary.is-light .el-alert__description {
+  color: var(--admin-text-primary);
+}
+
+html:not(.dark) .el-message--primary {
+  --el-message-text-color: var(--admin-text-primary);
+}
+
+html:not(.dark) .el-link--primary {
+  --el-link-text-color: var(--admin-text-primary);
+  --el-link-hover-text-color: var(--admin-text-primary);
+}
+
+html:not(.dark) .el-badge__content--primary {
+  color: var(--admin-on-fill);
+}
+
+/* success */
+html:not(.dark) .el-button--success:not(.is-plain):not(.is-text):not(.is-link) {
+  --el-button-text-color: var(--admin-on-fill);
+  --el-button-hover-text-color: var(--admin-on-fill);
+  --el-button-active-bg-color: var(--el-color-success);
+  --el-button-active-border-color: var(--el-color-success);
+}
+
+html:not(.dark) .el-button--success.is-plain {
+  --el-button-text-color: var(--admin-text-success);
+  --el-button-hover-text-color: var(--admin-on-fill);
+  --el-button-active-text-color: var(--admin-on-fill);
+  --el-button-active-bg-color: var(--el-color-success);
+  --el-button-active-border-color: var(--el-color-success);
+}
+
+html:not(.dark) .el-button--success.is-text,
+html:not(.dark) .el-button--success.is-link {
+  --el-button-text-color: var(--admin-text-success);
+  --el-button-hover-text-color: var(--admin-text-success);
+  --el-button-active-color: var(--admin-text-success);
+}
+
+html:not(.dark) .el-tag--success.el-tag--light,
+html:not(.dark) .el-tag--success.el-tag--plain {
+  --el-tag-text-color: var(--admin-text-success);
+}
+
+html:not(.dark) .el-tag--dark.el-tag--success {
+  --el-tag-text-color: var(--admin-on-fill);
+}
+
+html:not(.dark) .el-alert--success.is-light {
+  color: var(--admin-text-success);
+}
+
+html:not(.dark) .el-alert--success.is-light .el-alert__description {
+  color: var(--admin-text-success);
+}
+
+html:not(.dark) .el-message--success {
+  --el-message-text-color: var(--admin-text-success);
+}
+
+html:not(.dark) .el-link--success {
+  --el-link-text-color: var(--admin-text-success);
+  --el-link-hover-text-color: var(--admin-text-success);
+}
+
+html:not(.dark) .el-badge__content--success {
+  color: var(--admin-on-fill);
+}
+
+/* warning */
+html:not(.dark) .el-button--warning:not(.is-plain):not(.is-text):not(.is-link) {
+  --el-button-text-color: var(--admin-on-fill);
+  --el-button-hover-text-color: var(--admin-on-fill);
+  --el-button-active-bg-color: var(--el-color-warning);
+  --el-button-active-border-color: var(--el-color-warning);
+}
+
+html:not(.dark) .el-button--warning.is-plain {
+  --el-button-text-color: var(--admin-text-warning);
+  --el-button-hover-text-color: var(--admin-on-fill);
+  --el-button-active-text-color: var(--admin-on-fill);
+  --el-button-active-bg-color: var(--el-color-warning);
+  --el-button-active-border-color: var(--el-color-warning);
+}
+
+html:not(.dark) .el-button--warning.is-text,
+html:not(.dark) .el-button--warning.is-link {
+  --el-button-text-color: var(--admin-text-warning);
+  --el-button-hover-text-color: var(--admin-text-warning);
+  --el-button-active-color: var(--admin-text-warning);
+}
+
+html:not(.dark) .el-tag--warning.el-tag--light,
+html:not(.dark) .el-tag--warning.el-tag--plain {
+  --el-tag-text-color: var(--admin-text-warning);
+}
+
+html:not(.dark) .el-tag--dark.el-tag--warning {
+  --el-tag-text-color: var(--admin-on-fill);
+}
+
+html:not(.dark) .el-alert--warning.is-light {
+  color: var(--admin-text-warning);
+}
+
+html:not(.dark) .el-alert--warning.is-light .el-alert__description {
+  color: var(--admin-text-warning);
+}
+
+html:not(.dark) .el-message--warning {
+  --el-message-text-color: var(--admin-text-warning);
+}
+
+html:not(.dark) .el-link--warning {
+  --el-link-text-color: var(--admin-text-warning);
+  --el-link-hover-text-color: var(--admin-text-warning);
+}
+
+html:not(.dark) .el-badge__content--warning {
+  color: var(--admin-on-fill);
+}
+
+/* danger */
+html:not(.dark) .el-button--danger:not(.is-plain):not(.is-text):not(.is-link) {
+  --el-button-text-color: var(--admin-on-fill);
+  --el-button-hover-text-color: var(--admin-on-fill);
+  --el-button-active-bg-color: var(--el-color-danger);
+  --el-button-active-border-color: var(--el-color-danger);
+}
+
+html:not(.dark) .el-button--danger.is-plain {
+  --el-button-text-color: var(--admin-text-danger);
+  --el-button-hover-text-color: var(--admin-on-fill);
+  --el-button-active-text-color: var(--admin-on-fill);
+  --el-button-active-bg-color: var(--el-color-danger);
+  --el-button-active-border-color: var(--el-color-danger);
+}
+
+html:not(.dark) .el-button--danger.is-text,
+html:not(.dark) .el-button--danger.is-link {
+  --el-button-text-color: var(--admin-text-danger);
+  --el-button-hover-text-color: var(--admin-text-danger);
+  --el-button-active-color: var(--admin-text-danger);
+}
+
+html:not(.dark) .el-tag--danger.el-tag--light,
+html:not(.dark) .el-tag--danger.el-tag--plain {
+  --el-tag-text-color: var(--admin-text-danger);
+}
+
+html:not(.dark) .el-tag--dark.el-tag--danger {
+  --el-tag-text-color: var(--admin-on-fill);
+}
+
+html:not(.dark) .el-alert--danger.is-light {
+  color: var(--admin-text-danger);
+}
+
+html:not(.dark) .el-alert--danger.is-light .el-alert__description {
+  color: var(--admin-text-danger);
+}
+
+html:not(.dark) .el-message--danger {
+  --el-message-text-color: var(--admin-text-danger);
+}
+
+html:not(.dark) .el-link--danger {
+  --el-link-text-color: var(--admin-text-danger);
+  --el-link-hover-text-color: var(--admin-text-danger);
+}
+
+html:not(.dark) .el-badge__content--danger {
+  color: var(--admin-on-fill);
+}
+
+/* info */
+html:not(.dark) .el-button--info:not(.is-plain):not(.is-text):not(.is-link) {
+  --el-button-text-color: var(--admin-on-fill);
+  --el-button-hover-text-color: var(--admin-on-fill);
+  --el-button-active-bg-color: var(--el-color-info);
+  --el-button-active-border-color: var(--el-color-info);
+}
+
+html:not(.dark) .el-button--info.is-plain {
+  --el-button-text-color: var(--admin-text-info);
+  --el-button-hover-text-color: var(--admin-on-fill);
+  --el-button-active-text-color: var(--admin-on-fill);
+  --el-button-active-bg-color: var(--el-color-info);
+  --el-button-active-border-color: var(--el-color-info);
+}
+
+html:not(.dark) .el-button--info.is-text,
+html:not(.dark) .el-button--info.is-link {
+  --el-button-text-color: var(--admin-text-info);
+  --el-button-hover-text-color: var(--admin-text-info);
+  --el-button-active-color: var(--admin-text-info);
+}
+
+html:not(.dark) .el-tag--info.el-tag--light,
+html:not(.dark) .el-tag--info.el-tag--plain {
+  --el-tag-text-color: var(--admin-text-info);
+}
+
+html:not(.dark) .el-tag--dark.el-tag--info {
+  --el-tag-text-color: var(--admin-on-fill);
+}
+
+html:not(.dark) .el-alert--info.is-light {
+  color: var(--admin-text-info);
+}
+
+html:not(.dark) .el-alert--info.is-light .el-alert__description {
+  color: var(--admin-text-info);
+}
+
+html:not(.dark) .el-message--info {
+  --el-message-text-color: var(--admin-text-info);
+}
+
+html:not(.dark) .el-link--info {
+  --el-link-text-color: var(--admin-text-info);
+  --el-link-hover-text-color: var(--admin-text-info);
+}
+
+html:not(.dark) .el-badge__content--info {
+  color: var(--admin-on-fill);
+}
+
+html:not(.dark) .el-switch__label.is-active {
+  color: var(--admin-text-primary);
+}
+
+html:not(.dark) .el-radio-button {
+  --el-radio-button-checked-text-color: var(--admin-on-fill);
 }
 
 /*
@@ -52,6 +304,11 @@ html:not(.dark) {
 */
 html.dark {
   --admin-on-fill: #111111;
+  --admin-text-primary: var(--el-color-primary);
+  --admin-text-success: var(--el-color-success);
+  --admin-text-warning: var(--el-color-warning);
+  --admin-text-danger: var(--el-color-danger);
+  --admin-text-info: var(--el-color-info);
 }
 
 html.dark .el-button--primary:not(.is-plain):not(.is-text):not(.is-link) {
