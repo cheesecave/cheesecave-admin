@@ -154,6 +154,27 @@ function handleSelectResult(result) {
   }
 }
 
+// Prototype: pages and actions, shown while the query is shorter than two characters
+const commands = [
+  { kind: "Action", label: "Create user", icon: "i-carbon-user-follow", to: { path: "/users", query: { create: "1" } } },
+  { kind: "Action", label: "Reset a password", icon: "i-carbon-password", to: { path: "/users", query: { reset: "1" } } },
+  { kind: "Action", label: "New invitation", icon: "i-carbon-email", to: { path: "/invitations", query: { create: "1" } } },
+  { kind: "Action", label: "Failed tasks, last 24 h", icon: "i-carbon-warning", to: { path: "/tasks", query: { status: "failed", window: "24h" } } },
+  { kind: "Action", label: "Users over quota", icon: "i-carbon-meter", to: { path: "/users", query: { filter: "over_quota" } } },
+  { kind: "Page", label: "Overview", icon: "i-carbon-dashboard", to: "/" },
+  { kind: "Page", label: "Health", icon: "i-carbon-activity", to: "/health" },
+  { kind: "Page", label: "Background Tasks", icon: "i-carbon-task", to: "/tasks" },
+  { kind: "Page", label: "Storage", icon: "i-carbon-data-volume", to: "/storage" },
+];
+const shownCommands = computed(() => {
+  const q = (searchQuery.value || "").toLowerCase();
+  return commands.filter((c) => !q || c.label.toLowerCase().includes(q));
+});
+function runCommand(c) {
+  closeDialog();
+  router.push(c.to);
+}
+
 function getIcon(type) {
   switch (type) {
     case "user":
@@ -253,7 +274,20 @@ defineExpose({ openDialog });
 
       <!-- Results -->
       <div
-        v-if="searchQuery && searchQuery.length >= 2"
+        v-if="!(searchQuery && searchQuery.length >= 2)"
+        class="results-container"
+        data-testid="palette"
+      >
+        <div class="section-header"><div class="i-carbon-flash text-orange-500" /><span>Go to and actions</span></div>
+        <div v-for="c in shownCommands" :key="c.label" class="result-item" @click="runCommand(c)">
+          <div :class="c.icon" class="text-lg" />
+          <div class="result-content"><div class="result-title">{{ c.label }}</div></div>
+          <el-tag size="small" effect="plain">{{ c.kind }}</el-tag>
+        </div>
+        <p class="hint-text text-xs mt-2">Type two or more characters to search users, repositories and commits</p>
+      </div>
+      <div
+        v-else
         class="results-container"
       >
         <div v-if="loading" class="text-center py-8 text-gray-500">
@@ -409,14 +443,6 @@ defineExpose({ openDialog });
         </div>
       </div>
 
-      <!-- Hint -->
-      <div v-else class="hint-text">
-        <p>Type at least 2 characters to search</p>
-        <p class="text-xs mt-2">
-          <kbd>↑</kbd> <kbd>↓</kbd> to navigate • <kbd>Enter</kbd> to select •
-          <kbd>Esc</kbd> to close
-        </p>
-      </div>
     </div>
   </el-dialog>
 </template>

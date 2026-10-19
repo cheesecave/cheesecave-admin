@@ -1,7 +1,7 @@
 <script setup>
 import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
@@ -22,6 +22,13 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import dayjs from "dayjs";
 
 const router = useRouter();
+const route = useRoute();
+const quotaFilter = ref(route.query.filter === "over_quota");
+const resetHint = ref(route.query.reset === "1");
+function clearQuotaFilter() {
+  quotaFilter.value = false;
+  router.replace({ path: "/users" });
+}
 const compact = useCompactViewport();
 const adminStore = useAdminStore();
 const users = ref([]);
@@ -423,6 +430,7 @@ function isQuotaExceeded(used, quota) {
 }
 
 onMounted(() => {
+  if (route.query.create === "1") dialogVisible.value = true;
   loadUsers();
 });
 </script>
@@ -445,6 +453,24 @@ onMounted(() => {
       </AdminPageHeader>
 
       <!-- Search Bar -->
+      <el-alert
+        v-if="resetHint"
+        type="info"
+        show-icon
+        class="mb-4"
+        data-testid="deep-link-banner"
+        title="Pick the user, then choose Reset password on their row"
+        @close="resetHint = false"
+      />
+      <el-alert
+        v-if="quotaFilter"
+        type="warning"
+        show-icon
+        class="mb-4"
+        data-testid="deep-link-banner"
+        title="Showing users over their storage quota, opened from the Overview"
+        @close="clearQuotaFilter"
+      />
       <el-card class="mb-4">
         <div class="flex gap-4 items-center flex-wrap">
           <el-input
@@ -480,7 +506,7 @@ onMounted(() => {
         />
         <el-table
           v-else
-          :data="sortedUsers"
+          :data="quotaFilter ? sortedUsers.filter((u) => u.private_quota_bytes != null && u.private_used_bytes > u.private_quota_bytes) : sortedUsers"
           v-loading="loading"
           stripe
           @sort-change="handleSortChange"

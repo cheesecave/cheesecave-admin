@@ -1,7 +1,7 @@
 <script setup>
 import { getApiErrorMessage } from "@/utils/api-error";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
@@ -23,6 +23,14 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { formatDate } from "@/components/tasks/taskFormat.js";
 
 const router = useRouter();
+const route = useRoute();
+const deepLink = ref(route.query.status ? { status: String(route.query.status), window: route.query.window ? String(route.query.window) : "" } : null);
+function clearDeepLink() {
+  deepLink.value = null;
+  filterStatus.value = "";
+  router.replace({ path: "/tasks" });
+  applyFilters();
+}
 const adminStore = useAdminStore();
 
 const STATUSES = ["queued", "running", "succeeded", "failed", "cancelled"];
@@ -333,7 +341,10 @@ watch(refreshIntervalSeconds, (seconds) => {
 watch(statsWindow, loadStats);
 watch(includeInactiveWorkers, loadWorkers);
 
-onMounted(refreshAll);
+onMounted(() => {
+  refreshAll();
+  if (deepLink.value) showStatus(deepLink.value.status);
+});
 onBeforeUnmount(stopTimer);
 </script>
 
@@ -394,6 +405,15 @@ onBeforeUnmount(stopTimer);
         </template>
       </AdminPageHeader>
 
+      <el-alert
+        v-if="deepLink"
+        type="info"
+        show-icon
+        class="mb-4"
+        data-testid="deep-link-banner"
+        @close="clearDeepLink"
+        :title="`Showing ${deepLink.status} tasks${deepLink.window ? ' from the last ' + deepLink.window : ''}, opened from the Overview`"
+      />
       <div class="status-cards mb-4">
         <button
           v-for="status in STATUSES"
