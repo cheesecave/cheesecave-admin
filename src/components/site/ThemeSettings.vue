@@ -230,6 +230,7 @@ const applyQuickSetup = (theme) => Object.assign(draft.value, theme);
   font-family: monospace;
 }
 .quick-setup-row {
+  margin-bottom: 8px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
