@@ -48,6 +48,15 @@ describe("ThemeQuickSetup", () => {
     expect(wrapper.get("#qs-depth").element.value).toBe("0");
   });
 
+  it("opens on the colors the form holds when it is opened, not when the page was loaded", async () => {
+    const wrapper = mountDialog({ modelValue: false });
+    await wrapper.setProps({
+      theme: { ...SAVED, ...deriveTheme("#16a34a", 0) },
+    });
+    await wrapper.setProps({ modelValue: true });
+    expect(wrapper.get("#qs-hex").element.value).toBe("#16a34a");
+  });
+
   it("shows sixteen recommended colors and marks none when the color is not one of them", () => {
     const wrapper = mountDialog({
       theme: { ...SAVED, primary_light: "#94621f" },

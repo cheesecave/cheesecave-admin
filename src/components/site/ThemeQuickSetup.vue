@@ -47,12 +47,11 @@ function open() {
     ? darkDepthOf(props.theme.background_dark)
     : 0;
 }
+// valid from the start, so nothing derived from it can fail while the dialog is closed
+open();
 watch(
   () => props.modelValue,
   (visible) => visible && open(),
-  {
-    immediate: true,
-  },
 );
 
 const ceiling = computed(() => maxChroma(state.L, state.h));
