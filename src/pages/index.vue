@@ -141,7 +141,7 @@ onBeforeUnmount(() => clearInterval(clock));
 .seg button:first-child { border-radius: 6px 0 0 6px; }
 .seg button:last-child { border-radius: 0 6px 6px 0; }
 .seg button + button { border-left: 0; }
-.seg button.on { background: var(--color-info); color: var(--admin-on-fill, #111); border-color: var(--color-info); }
+.seg button.on { background: var(--color-info); color: #fff; border-color: var(--color-info); }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px; }
 .two { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; margin-bottom: 16px; }
 .greyed { opacity: 0.55; filter: grayscale(0.4); transition: opacity 0.2s; }

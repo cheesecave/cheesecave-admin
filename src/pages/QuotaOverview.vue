@@ -165,7 +165,7 @@ onMounted(() => {
                       :class="{
                         'text-red-600 font-semibold':
                           row.private_percentage > 100,
-                        'text-orange-700': row.private_percentage > 90,
+                        'text-orange-600': row.private_percentage > 90,
                       }"
                     >
                       {{ row.private_percentage }}%
@@ -185,7 +185,7 @@ onMounted(() => {
                       :class="{
                         'text-red-600 font-semibold':
                           row.public_percentage > 100,
-                        'text-orange-700': row.public_percentage > 90,
+                        'text-orange-600': row.public_percentage > 90,
                       }"
                     >
                       {{ row.public_percentage }}%

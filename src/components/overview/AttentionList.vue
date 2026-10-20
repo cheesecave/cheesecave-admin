@@ -82,7 +82,7 @@ header {
 }
 .count {
   background: var(--color-error);
-  color: var(--admin-on-fill, #111);
+  color: #fff;
   border-radius: 999px;
   font-size: 12px;
   padding: 0 8px;
