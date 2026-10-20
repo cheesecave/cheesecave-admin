@@ -162,6 +162,7 @@ function apply() {
     title="Quick color setup"
     width="min(980px, 94vw)"
     class="quick-setup"
+    align-center
     @update:model-value="emit('update:modelValue', $event)"
   >
     <div class="qs-body">
@@ -409,13 +410,14 @@ function apply() {
   border: 1px solid var(--border-default);
   border-radius: 8px;
 }
-.qs-hex input {
+/* the id outranks the Theme page's own text-field rule, which also reaches into this dialog */
+.qs-hex input#qs-hex {
   width: 112px;
   padding: 7px 10px;
   font-family: monospace;
   font-size: 13px;
 }
-.qs-hex input[aria-invalid="true"] {
+.qs-hex input#qs-hex[aria-invalid="true"] {
   border-color: var(--el-color-danger);
 }
 .qs-gamut,
