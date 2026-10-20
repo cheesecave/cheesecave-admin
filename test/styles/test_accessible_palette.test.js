@@ -77,26 +77,19 @@ describe("accessible light palette", () => {
     );
   });
 
-  it.each(TYPES)(
-    "%s: dark text on the bright fill, on its hover and on its pressed state",
-    (type) => {
-      const text = light["--admin-on-fill"];
-      expect(text).toBeDefined();
-      const fill = elementColour(type);
-      const hover = elementColour(`${type}-light-3`);
-      expect(contrast(text, fill), "button text on the fill").toBeGreaterThanOrEqual(AA);
-      expect(contrast(text, hover), "button text on hover").toBeGreaterThanOrEqual(AA);
-      // the pressed state is set back to the fill (Element's dark-2 would be too dark for dark text)
-      const rule = new RegExp(
-        `html:not\\(\\.dark\\) \\.el-button--${type}:not\\(\\.is-plain\\):not\\(\\.is-text\\):not\\(\\.is-link\\)\\s*\\{([^}]*)\\}`,
+  it("leaves the filled controls alone: bright fill, Element Plus's own white label", () => {
+    // white on the bright fills is below 4.5:1 and that is accepted on purpose: the admin keeps its
+    // original look (see the comment at the top of the stylesheet)
+    for (const type of TYPES) {
+      expect(css, type).not.toMatch(
+        new RegExp(`html:not\\(\\.dark\\) \\.el-button--${type}:not\\(\\.is-plain\\)`),
       );
-      const body = css.match(rule)?.[1] ?? "";
-      expect(body).toContain("--el-button-text-color: var(--admin-on-fill)");
-      expect(body).toContain("--el-button-hover-text-color: var(--admin-on-fill)");
-      expect(body).toContain(`--el-button-active-bg-color: var(--el-color-${type})`);
-      expect(body).toContain(`--el-button-active-border-color: var(--el-color-${type})`);
-    },
-  );
+      expect(css, type).not.toContain(`.el-tag--dark.el-tag--${type}`);
+      expect(css, type).not.toContain(`.el-badge__content--${type}`);
+    }
+    expect(css).not.toMatch(/html:not\(\.dark\) \.el-radio-button/);
+    expect(light["--admin-on-fill"]).toBeUndefined();
+  });
 
   it.each(TYPES)(
     "%s: coloured text reads on white, on the page and on its own tint",
@@ -120,7 +113,7 @@ describe("accessible light palette", () => {
   );
 
   it.each(TYPES)(
-    "%s: tags, alerts, messages, links, plain and text buttons, badges and dark tags use it",
+    "%s: tags, alerts, messages, links, plain and text buttons use it",
     (type) => {
       const own = `var(--admin-text-${type})`;
       const rule = (selector) => {
@@ -137,18 +130,14 @@ describe("accessible light palette", () => {
       expect(rule(`html:not(.dark) .el-link--${type} {`)).toContain(`--el-link-hover-text-color: ${own}`);
       const plain = rule(`html:not(.dark) .el-button--${type}.is-plain`);
       expect(plain).toContain(`--el-button-text-color: ${own}`);
-      expect(plain).toContain("--el-button-hover-text-color: var(--admin-on-fill)");
-      expect(plain).toContain("--el-button-active-text-color: var(--admin-on-fill)");
+      expect(plain).not.toContain("--admin-on-fill");
       const flat = rule(`html:not(.dark) .el-button--${type}.is-text`);
       expect(flat).toContain(`--el-button-text-color: ${own}`);
       expect(flat).toContain(`--el-button-hover-text-color: ${own}`);
-      expect(rule(`html:not(.dark) .el-badge__content--${type}`)).toContain("color: var(--admin-on-fill)");
-      expect(rule(`html:not(.dark) .el-tag--dark.el-tag--${type}`)).toContain("--el-tag-text-color: var(--admin-on-fill)");
     },
   );
 
-  it("puts dark text on the checked radio button and keeps secondary text readable", () => {
-    expect(css).toMatch(/html:not\(\.dark\) \.el-radio-button\s*\{[^}]*--el-radio-button-checked-text-color: var\(--admin-on-fill\)/);
+  it("keeps secondary text readable", () => {
     const secondary = light["--el-text-color-secondary"];
     expect(contrast(secondary, WHITE)).toBeGreaterThanOrEqual(AA);
     expect(contrast(secondary, PAGE)).toBeGreaterThanOrEqual(AA);

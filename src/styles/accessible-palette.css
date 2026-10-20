@@ -1,13 +1,13 @@
 /*
-  Keeps Element Plus's own bright colours (the green, red, orange and blue the admin always had) and makes
-  the text on and in them readable instead of darkening the colours themselves:
+  Keeps Element Plus's own colours: the bright green, red, orange and blue the admin always had, with the
+  white labels on them. Only coloured TEXT (not fills) is made readable:
 
-  - Filled buttons, dark tags, badges and the checked radio button keep their bright fill and carry dark
-    text (--admin-on-fill), which reads at 6 to 9:1 on every fill. White on #67c23a or #f56c6c is 2.2 to 2.9:1.
-    The pressed state is set back to the fill: Element Plus's dark-2 would be too dark for dark text.
-  - Coloured text (tags, alerts, messages, links, plain and text buttons, and the components that colour
-    text themselves) uses --admin-text-<type>, the same hue mixed with black until it reads at 4.5:1 on white,
-    on the page (#f5f5f5) and on the type's own tint.
+  - Coloured text (tags, alerts, messages, links, plain and text buttons, the on-state of switches, and the
+    components that colour text themselves) uses --admin-text-<type>, the same hue mixed with black until it
+    reads at 4.5:1 on white, on the page (#f5f5f5), on the type's own tint and on the 12% tint the task chips use.
+  - Filled buttons, dark tags, badges and the checked radio button keep their bright fill AND Element Plus's own
+    white label. White on #67c23a or #f56c6c is 2.2 to 2.9:1, below WCAG AA: that is accepted on purpose, the
+    admin keeps its original look there. (The dark theme still puts dark text on its bright fills.)
   - The dark theme keeps the bright colours as text (they are right on a dark page).
 
   An earlier version redefined --el-color-* and every tint of them for the whole admin, which turned every
@@ -15,7 +15,6 @@
 */
 
 html:not(.dark) {
-  --admin-on-fill: #111111;
   --admin-text-primary: #2b6aab;
   --admin-text-success: #3f7623;
   --admin-text-warning: #8a6124;
@@ -25,19 +24,8 @@ html:not(.dark) {
 }
 
 /* primary */
-html:not(.dark) .el-button--primary:not(.is-plain):not(.is-text):not(.is-link) {
-  --el-button-text-color: var(--admin-on-fill);
-  --el-button-hover-text-color: var(--admin-on-fill);
-  --el-button-active-bg-color: var(--el-color-primary);
-  --el-button-active-border-color: var(--el-color-primary);
-}
-
 html:not(.dark) .el-button--primary.is-plain {
   --el-button-text-color: var(--admin-text-primary);
-  --el-button-hover-text-color: var(--admin-on-fill);
-  --el-button-active-text-color: var(--admin-on-fill);
-  --el-button-active-bg-color: var(--el-color-primary);
-  --el-button-active-border-color: var(--el-color-primary);
 }
 
 html:not(.dark) .el-button--primary.is-text,
@@ -50,10 +38,6 @@ html:not(.dark) .el-button--primary.is-link {
 html:not(.dark) .el-tag--primary.el-tag--light,
 html:not(.dark) .el-tag--primary.el-tag--plain {
   --el-tag-text-color: var(--admin-text-primary);
-}
-
-html:not(.dark) .el-tag--dark.el-tag--primary {
-  --el-tag-text-color: var(--admin-on-fill);
 }
 
 html:not(.dark) .el-alert--primary.is-light {
@@ -73,24 +57,9 @@ html:not(.dark) .el-link--primary {
   --el-link-hover-text-color: var(--admin-text-primary);
 }
 
-html:not(.dark) .el-badge__content--primary {
-  color: var(--admin-on-fill);
-}
-
 /* success */
-html:not(.dark) .el-button--success:not(.is-plain):not(.is-text):not(.is-link) {
-  --el-button-text-color: var(--admin-on-fill);
-  --el-button-hover-text-color: var(--admin-on-fill);
-  --el-button-active-bg-color: var(--el-color-success);
-  --el-button-active-border-color: var(--el-color-success);
-}
-
 html:not(.dark) .el-button--success.is-plain {
   --el-button-text-color: var(--admin-text-success);
-  --el-button-hover-text-color: var(--admin-on-fill);
-  --el-button-active-text-color: var(--admin-on-fill);
-  --el-button-active-bg-color: var(--el-color-success);
-  --el-button-active-border-color: var(--el-color-success);
 }
 
 html:not(.dark) .el-button--success.is-text,
@@ -103,10 +72,6 @@ html:not(.dark) .el-button--success.is-link {
 html:not(.dark) .el-tag--success.el-tag--light,
 html:not(.dark) .el-tag--success.el-tag--plain {
   --el-tag-text-color: var(--admin-text-success);
-}
-
-html:not(.dark) .el-tag--dark.el-tag--success {
-  --el-tag-text-color: var(--admin-on-fill);
 }
 
 html:not(.dark) .el-alert--success.is-light {
@@ -126,24 +91,9 @@ html:not(.dark) .el-link--success {
   --el-link-hover-text-color: var(--admin-text-success);
 }
 
-html:not(.dark) .el-badge__content--success {
-  color: var(--admin-on-fill);
-}
-
 /* warning */
-html:not(.dark) .el-button--warning:not(.is-plain):not(.is-text):not(.is-link) {
-  --el-button-text-color: var(--admin-on-fill);
-  --el-button-hover-text-color: var(--admin-on-fill);
-  --el-button-active-bg-color: var(--el-color-warning);
-  --el-button-active-border-color: var(--el-color-warning);
-}
-
 html:not(.dark) .el-button--warning.is-plain {
   --el-button-text-color: var(--admin-text-warning);
-  --el-button-hover-text-color: var(--admin-on-fill);
-  --el-button-active-text-color: var(--admin-on-fill);
-  --el-button-active-bg-color: var(--el-color-warning);
-  --el-button-active-border-color: var(--el-color-warning);
 }
 
 html:not(.dark) .el-button--warning.is-text,
@@ -156,10 +106,6 @@ html:not(.dark) .el-button--warning.is-link {
 html:not(.dark) .el-tag--warning.el-tag--light,
 html:not(.dark) .el-tag--warning.el-tag--plain {
   --el-tag-text-color: var(--admin-text-warning);
-}
-
-html:not(.dark) .el-tag--dark.el-tag--warning {
-  --el-tag-text-color: var(--admin-on-fill);
 }
 
 html:not(.dark) .el-alert--warning.is-light {
@@ -179,24 +125,9 @@ html:not(.dark) .el-link--warning {
   --el-link-hover-text-color: var(--admin-text-warning);
 }
 
-html:not(.dark) .el-badge__content--warning {
-  color: var(--admin-on-fill);
-}
-
 /* danger */
-html:not(.dark) .el-button--danger:not(.is-plain):not(.is-text):not(.is-link) {
-  --el-button-text-color: var(--admin-on-fill);
-  --el-button-hover-text-color: var(--admin-on-fill);
-  --el-button-active-bg-color: var(--el-color-danger);
-  --el-button-active-border-color: var(--el-color-danger);
-}
-
 html:not(.dark) .el-button--danger.is-plain {
   --el-button-text-color: var(--admin-text-danger);
-  --el-button-hover-text-color: var(--admin-on-fill);
-  --el-button-active-text-color: var(--admin-on-fill);
-  --el-button-active-bg-color: var(--el-color-danger);
-  --el-button-active-border-color: var(--el-color-danger);
 }
 
 html:not(.dark) .el-button--danger.is-text,
@@ -209,10 +140,6 @@ html:not(.dark) .el-button--danger.is-link {
 html:not(.dark) .el-tag--danger.el-tag--light,
 html:not(.dark) .el-tag--danger.el-tag--plain {
   --el-tag-text-color: var(--admin-text-danger);
-}
-
-html:not(.dark) .el-tag--dark.el-tag--danger {
-  --el-tag-text-color: var(--admin-on-fill);
 }
 
 html:not(.dark) .el-alert--danger.is-light {
@@ -232,24 +159,9 @@ html:not(.dark) .el-link--danger {
   --el-link-hover-text-color: var(--admin-text-danger);
 }
 
-html:not(.dark) .el-badge__content--danger {
-  color: var(--admin-on-fill);
-}
-
 /* info */
-html:not(.dark) .el-button--info:not(.is-plain):not(.is-text):not(.is-link) {
-  --el-button-text-color: var(--admin-on-fill);
-  --el-button-hover-text-color: var(--admin-on-fill);
-  --el-button-active-bg-color: var(--el-color-info);
-  --el-button-active-border-color: var(--el-color-info);
-}
-
 html:not(.dark) .el-button--info.is-plain {
   --el-button-text-color: var(--admin-text-info);
-  --el-button-hover-text-color: var(--admin-on-fill);
-  --el-button-active-text-color: var(--admin-on-fill);
-  --el-button-active-bg-color: var(--el-color-info);
-  --el-button-active-border-color: var(--el-color-info);
 }
 
 html:not(.dark) .el-button--info.is-text,
@@ -262,10 +174,6 @@ html:not(.dark) .el-button--info.is-link {
 html:not(.dark) .el-tag--info.el-tag--light,
 html:not(.dark) .el-tag--info.el-tag--plain {
   --el-tag-text-color: var(--admin-text-info);
-}
-
-html:not(.dark) .el-tag--dark.el-tag--info {
-  --el-tag-text-color: var(--admin-on-fill);
 }
 
 html:not(.dark) .el-alert--info.is-light {
@@ -285,16 +193,8 @@ html:not(.dark) .el-link--info {
   --el-link-hover-text-color: var(--admin-text-info);
 }
 
-html:not(.dark) .el-badge__content--info {
-  color: var(--admin-on-fill);
-}
-
 html:not(.dark) .el-switch__label.is-active {
   color: var(--admin-text-primary);
-}
-
-html:not(.dark) .el-radio-button {
-  --el-radio-button-checked-text-color: var(--admin-on-fill);
 }
 
 /*
