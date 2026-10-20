@@ -1907,7 +1907,7 @@ onMounted(async () => {
 .stat-value {
   font-size: 28px;
   font-weight: 600;
-  color: var(--admin-text-primary);
+  color: var(--el-color-primary);
 }
 
 .sources-card {
@@ -2193,7 +2193,7 @@ onMounted(async () => {
   border: 1px solid var(--el-color-danger);
   border-radius: 4px;
   background: var(--el-color-danger-light-9);
-  color: var(--admin-text-danger);
+  color: var(--el-color-danger);
   font-size: 13px;
   margin-bottom: 12px;
 }
@@ -2259,7 +2259,7 @@ onMounted(async () => {
 
 .probe-attempt-xerror {
   font-size: 12px;
-  color: var(--admin-text-warning);
+  color: var(--el-color-warning);
 }
 
 .probe-attempt-ms {
@@ -2312,7 +2312,7 @@ onMounted(async () => {
 .probe-attempt-error-detail {
   margin-top: 6px;
   font-size: 12px;
-  color: var(--admin-text-danger);
+  color: var(--el-color-danger);
 }
 
 .probe-final-response {

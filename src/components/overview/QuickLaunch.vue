@@ -166,13 +166,13 @@ kbd {
   font-size: 14px;
 }
 .m:hover {
-  color: var(--admin-text-primary);
+  color: var(--color-info);
 }
 .b {
   border-radius: 999px;
   font-size: 11px;
   padding: 0 7px;
-  color: var(--admin-on-fill, #111);
+  color: #fff;
   background: var(--color-info);
 }
 .b.danger {

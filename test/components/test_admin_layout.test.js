@@ -160,7 +160,7 @@ describe("AdminLayout", () => {
   });
 
   it.each([
-    [false, "#174aa8"],
+    [false, "#409EFF"],
     [true, "#409EFF"],
   ])(
     "draws the selected menu entry in a colour that reads on the theme (dark=%s)",

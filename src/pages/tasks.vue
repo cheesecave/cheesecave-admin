@@ -726,32 +726,27 @@ onBeforeUnmount(stopTimer);
    as an accent, so cards and table badges read as one legend. */
 .status-card {
   --status-color: var(--el-color-info);
-  --status-text: var(--admin-text-info);
   --status-tint: var(--el-color-info-light-9);
   border-left: 3px solid var(--status-color);
 }
 
 .status-card.status-running {
   --status-color: var(--el-color-primary);
-  --status-text: var(--admin-text-primary);
   --status-tint: var(--el-color-primary-light-9);
 }
 
 .status-card.status-succeeded {
   --status-color: var(--el-color-success);
-  --status-text: var(--admin-text-success);
   --status-tint: var(--el-color-success-light-9);
 }
 
 .status-card.status-failed {
   --status-color: var(--el-color-danger);
-  --status-text: var(--admin-text-danger);
   --status-tint: var(--el-color-danger-light-9);
 }
 
 .status-card.status-cancelled {
   --status-color: var(--el-color-warning);
-  --status-text: var(--admin-text-warning);
   --status-tint: var(--el-color-warning-light-9);
 }
 
@@ -777,7 +772,7 @@ onBeforeUnmount(stopTimer);
 }
 
 .status-card .status-value {
-  color: var(--status-text);
+  color: var(--status-color);
 }
 
 .health-chip {
@@ -791,24 +786,20 @@ onBeforeUnmount(stopTimer);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   --chip-color: var(--el-color-info);
-  --chip-text: var(--admin-text-info);
-  color: var(--chip-text);
+  color: var(--chip-color);
   background: color-mix(in srgb, var(--chip-color) 12%, transparent);
 }
 
 .health-chip.success {
   --chip-color: var(--el-color-success);
-  --chip-text: var(--admin-text-success);
 }
 
 .health-chip.warning {
   --chip-color: var(--el-color-warning);
-  --chip-text: var(--admin-text-warning);
 }
 
 .health-chip.danger {
   --chip-color: var(--el-color-danger);
-  --chip-text: var(--admin-text-danger);
 }
 
 .workers-chip {
@@ -839,6 +830,6 @@ onBeforeUnmount(stopTimer);
 }
 
 .error-text {
-  color: var(--admin-text-danger);
+  color: var(--el-color-danger);
 }
 </style>

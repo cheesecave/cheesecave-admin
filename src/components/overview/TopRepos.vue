@@ -82,7 +82,7 @@ const tagType = { dataset: "success", space: "warning" };
 }
 .tabs button.on {
   background: var(--color-info);
-  color: var(--admin-on-fill, #111);
+  color: #fff;
   border-color: var(--color-info);
 }
 .row {

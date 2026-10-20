@@ -84,7 +84,7 @@ defineProps({ queue: { type: Object, default: null } });
 }
 .more {
   font-size: 12px;
-  color: var(--admin-text-primary);
+  color: var(--color-info);
   text-decoration: none;
 }
 .nums {
@@ -111,7 +111,7 @@ defineProps({ queue: { type: Object, default: null } });
   color: var(--text-secondary, #6b7280);
 }
 .nums a.bad b {
-  color: var(--admin-text-danger);
+  color: var(--color-error);
 }
 .bars {
   display: flex;

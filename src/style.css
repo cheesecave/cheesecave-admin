@@ -141,7 +141,7 @@ html.dark body {
 .el-tabs > .el-tabs__header .el-tabs__item.is-active,
 .admin-tab-list > button[aria-selected="true"] {
   background: var(--el-color-primary-light-9);
-  color: var(--admin-text-primary);
+  color: var(--el-color-primary);
   font-weight: 600;
 }
 
@@ -198,13 +198,13 @@ html.dark body {
 .el-pagination .el-pager li:hover,
 .el-pagination button:not(:disabled):hover {
   border-color: var(--el-color-primary-light-5);
-  color: var(--admin-text-primary);
+  color: var(--el-color-primary);
 }
 
 .el-pagination .el-pager li.is-active {
   border-color: var(--el-color-primary-light-7);
   background: var(--el-color-primary-light-9);
-  color: var(--admin-text-primary);
+  color: var(--el-color-primary);
   font-weight: 600;
 }
 

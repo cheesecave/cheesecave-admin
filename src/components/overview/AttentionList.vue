@@ -82,7 +82,7 @@ header {
 }
 .count {
   background: var(--color-error);
-  color: var(--admin-on-fill, #111);
+  color: #fff;
   border-radius: 999px;
   font-size: 12px;
   padding: 0 8px;
@@ -123,7 +123,7 @@ header {
 }
 .go {
   margin-left: auto;
-  color: var(--admin-text-primary);
+  color: var(--color-info);
   font-size: 13px;
   white-space: nowrap;
   display: inline-flex;
@@ -138,7 +138,7 @@ header {
   color: var(--text-primary);
 }
 .ok {
-  color: var(--admin-text-success);
+  color: var(--color-success);
   font-size: 18px;
 }
 .muted {

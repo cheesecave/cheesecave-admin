@@ -96,7 +96,7 @@ const etaText = computed(() => {
 }
 
 .eta {
-  color: var(--admin-text-primary);
+  color: var(--el-color-primary);
 }
 
 .stage {

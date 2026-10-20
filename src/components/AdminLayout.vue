@@ -245,7 +245,7 @@ watch(
             class="sidebar-menu"
             :background-color="themeStore.isDark ? '#1f1f1f' : '#ffffff'"
             :text-color="themeStore.isDark ? '#e0e0e0' : '#303133'"
-            :active-text-color="themeStore.isDark ? '#409EFF' : '#174aa8'"
+            :active-text-color="'#409EFF'"
           >
             <el-menu-item
               v-for="item in menuItems"
@@ -389,7 +389,7 @@ watch(
   font-size: 11px;
   line-height: 18px;
   text-align: center;
-  color: var(--admin-on-fill, #111);
+  color: #fff;
   background: var(--color-info);
 }
 .nav-badge.danger { background: var(--color-error); }
