@@ -1,10 +1,11 @@
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import ThemePreviewTile from "./ThemePreviewTile.vue";
+import ThemeQuickSetup from "./ThemeQuickSetup.vue";
 import SiteSettingsHeader from "./SiteSettingsHeader.vue";
 import SiteActions from "./SiteActions.vue";
 import { useAppearanceSettings } from "./useAppearanceSettings.js";
 import { DEFAULT_THEME, normalizeTheme } from "../../shared/site-appearance.js";
-import { createThemePalette } from "../../shared/site-theme.js";
 import { MARKDOWN_STYLES } from "../../shared/markdown-styles.js";
 
 const {
@@ -45,38 +46,24 @@ const colors = [
 function safeColor(value, fallback) {
   return /^#[\da-f]{6}$/i.test(value) ? value : fallback;
 }
-const previewStyles = computed(() =>
+const previewColors = computed(() =>
   Object.fromEntries(
-    modes.map((mode) => {
-      const primary = safeColor(
-        draft.value[`primary_${mode}`],
-        DEFAULT_THEME[`primary_${mode}`],
-      );
-      const background = safeColor(
-        draft.value[`background_${mode}`],
-        DEFAULT_THEME[`background_${mode}`],
-      );
-      const card = safeColor(
-        draft.value[`card_${mode}`],
-        DEFAULT_THEME[`card_${mode}`],
-      );
-      const palette = createThemePalette({ primary, background, card });
-      return [
-        mode,
-        {
-          "--preview-primary": primary,
-          "--preview-background": background,
-          "--preview-card": card,
-          "--preview-text": palette.text,
-          "--preview-card-text": palette.cardText,
-          "--preview-primary-text": palette.buttonText,
-          "--preview-link": palette.link,
-          "--preview-border": palette.border,
-        },
-      ];
-    }),
+    modes.map((mode) => [
+      mode,
+      Object.fromEntries(
+        colors.map(({ key }) => [
+          key,
+          safeColor(
+            draft.value[`${key}_${mode}`],
+            DEFAULT_THEME[`${key}_${mode}`],
+          ),
+        ]),
+      ),
+    ]),
   ),
 );
+const quickSetupOpen = ref(false);
+const applyQuickSetup = (theme) => Object.assign(draft.value, theme);
 </script>
 
 <template>
@@ -139,6 +126,12 @@ const previewStyles = computed(() =>
             in Settings.
           </p>
         </div>
+        <div class="quick-setup-row">
+          <el-button @click="quickSetupOpen = true">Quick setup…</el-button>
+          <span class="site-settings-help"
+            >Pick one main color and fill all six colors from it.</span
+          >
+        </div>
         <div class="theme-columns">
           <el-card
             v-for="mode in modes"
@@ -184,6 +177,11 @@ const previewStyles = computed(() =>
         </div>
       </fieldset>
     </form>
+    <ThemeQuickSetup
+      v-model="quickSetupOpen"
+      :theme="draft"
+      @apply="applyQuickSetup"
+    />
     <section
       v-if="loaded"
       class="appearance-preview"
@@ -191,24 +189,15 @@ const previewStyles = computed(() =>
     >
       <h3>Preview</h3>
       <div class="theme-columns">
-        <div
+        <ThemePreviewTile
           v-for="mode in modes"
           :key="mode"
-          class="theme-preview"
-          :style="previewStyles[mode]"
+          :mode="mode"
+          :primary="previewColors[mode].primary"
+          :background="previewColors[mode].background"
+          :card="previewColors[mode].card"
           :data-testid="`theme-preview-${mode}`"
-        >
-          <span class="preview-mode">{{
-            mode === "light" ? "Light mode" : "Dark mode"
-          }}</span>
-          <div class="preview-card">
-            <p class="preview-eyebrow">YOUR NEXT PROJECT</p>
-            <h4>A home for your ideas</h4>
-            <p>Share models and datasets with your community.</p>
-            <span class="preview-link">Browse repositories →</span
-            ><button type="button">Create repository</button>
-          </div>
-        </div>
+        />
       </div>
     </section>
   </section>
@@ -240,54 +229,11 @@ const previewStyles = computed(() =>
   min-width: 0;
   font-family: monospace;
 }
-.theme-preview {
-  padding: 24px;
-  border: 1px solid var(--border-default);
-  border-radius: 12px;
-  background: var(--preview-background);
-  color: var(--preview-text);
-}
-.preview-mode {
-  display: block;
-  margin-bottom: 16px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.preview-card {
-  padding: 24px;
-  background: var(--preview-card);
-  color: var(--preview-card-text);
-  border: 1px solid var(--preview-border);
-  border-radius: 12px;
-}
-.preview-eyebrow {
-  color: var(--preview-link);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-.preview-card h4 {
-  font-size: 23px;
-  margin: 12px 0;
-}
-.preview-card > p:not(.preview-eyebrow) {
-  opacity: 0.75;
-  font-size: 14px;
-  line-height: 1.7;
-}
-.preview-link {
-  display: block;
-  color: var(--preview-link);
-  font-size: 13px;
-  margin: 18px 0;
-}
-.preview-card button {
-  color: var(--preview-primary-text);
-  background: var(--preview-primary);
-  padding: 10px 14px;
-  border-radius: 8px;
-  font: inherit;
-  font-size: 13px;
+.quick-setup-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
 }
 @media (max-width: 760px) {
   .theme-columns {
