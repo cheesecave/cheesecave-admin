@@ -153,6 +153,14 @@ describe("ThemeQuickSetup", () => {
     expect(out(wrapper, "depth")).toBe("100%");
   });
 
+  it("draws both demos compact so the two columns stay level, unlike the page's own Preview", () => {
+    const wrapper = mountDialog();
+    for (const mode of ["light", "dark"])
+      expect(
+        wrapper.get(`[data-testid="qs-preview-${mode}"]`).classes(),
+      ).toContain("compact");
+  });
+
   it("lists the six colors under the demos", () => {
     const text = mountDialog().get('[data-testid="qs-colors"]').text();
     for (const value of Object.values(deriveTheme("#2563eb", 0)))

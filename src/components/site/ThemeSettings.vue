@@ -127,7 +127,13 @@ const applyQuickSetup = (theme) => Object.assign(draft.value, theme);
           </p>
         </div>
         <div class="quick-setup-row">
-          <el-button @click="quickSetupOpen = true">Quick setup…</el-button>
+          <el-button
+            class="quick-setup-button"
+            type="primary"
+            @click="quickSetupOpen = true"
+            ><div class="i-carbon-magic-wand" aria-hidden="true" />
+            Quick setup</el-button
+          >
           <span class="site-settings-help"
             >Pick one main color and fill all six colors from it.</span
           >
@@ -228,6 +234,11 @@ const applyQuickSetup = (theme) => Object.assign(draft.value, theme);
 .color-control input[type="text"] {
   min-width: 0;
   font-family: monospace;
+}
+.quick-setup-button :deep(span) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 .quick-setup-row {
   margin-bottom: 8px;

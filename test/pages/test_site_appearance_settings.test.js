@@ -275,7 +275,7 @@ describe("footer and theme administration", () => {
   it("fills all six colors from the quick setup dialog and saves them", async () => {
     await mountPanel(ThemeSettings);
     expect(wrapper.find("#qs-hex").exists()).toBe(false);
-    await button("Quick setup…").trigger("click");
+    await button("Quick setup").trigger("click");
     await wrapper.get('[data-testid="qs-swatch-Violet"]').trigger("click");
     await wrapper.get("#qs-apply").trigger("click");
     const expected = deriveTheme("#7c3aed", 0);
@@ -296,10 +296,20 @@ describe("footer and theme administration", () => {
     );
   });
 
+  it("makes the Quick setup button stand out: a primary button with an icon", async () => {
+    await mountPanel(ThemeSettings);
+    expect(
+      wrapper.get('[data-testid="theme-preview-light"]').classes(),
+    ).not.toContain("compact");
+    const trigger = button("Quick setup");
+    expect(trigger.attributes("data-type")).toBe("primary");
+    expect(trigger.find(".i-carbon-magic-wand").exists()).toBe(true);
+  });
+
   it("opens the quick setup on the colors already in the form, and Cancel changes nothing", async () => {
     await mountPanel(ThemeSettings);
     await wrapper.get("#theme-primary-light").setValue("#16a34a");
-    await button("Quick setup…").trigger("click");
+    await button("Quick setup").trigger("click");
     expect(wrapper.get("#qs-hex").element.value).toBe("#16a34a");
     await wrapper.get('[data-testid="qs-swatch-Pink"]').trigger("click");
     await button("Cancel").trigger("click");

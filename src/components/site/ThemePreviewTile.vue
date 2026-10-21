@@ -9,6 +9,8 @@ const props = defineProps({
   primary: { type: String, required: true },
   background: { type: String, required: true },
   card: { type: String, required: true },
+  // smaller, without the sentence, for places where two tiles have to fit beside other controls
+  compact: { type: Boolean, default: false },
 });
 
 const style = computed(() => {
@@ -28,14 +30,16 @@ const style = computed(() => {
 </script>
 
 <template>
-  <div class="theme-preview" :style="style">
+  <div class="theme-preview" :class="{ compact }" :style="style">
     <span class="preview-mode">{{
       mode === "light" ? "Light mode" : "Dark mode"
     }}</span>
     <div class="preview-card">
       <p class="preview-eyebrow">YOUR NEXT PROJECT</p>
       <h4>A home for your ideas</h4>
-      <p>Share models and datasets with your community.</p>
+      <p class="preview-sentence">
+        Share models and datasets with your community.
+      </p>
       <span class="preview-link">Browse repositories →</span
       ><button type="button">Create repository</button>
     </div>
@@ -91,5 +95,24 @@ const style = computed(() => {
   border-radius: 8px;
   font: inherit;
   font-size: 13px;
+}
+.compact {
+  padding: 14px;
+}
+.compact .preview-mode {
+  margin-bottom: 10px;
+}
+.compact .preview-card {
+  padding: 14px;
+}
+.compact .preview-card h4 {
+  font-size: 18px;
+  margin: 8px 0;
+}
+.compact .preview-sentence {
+  display: none;
+}
+.compact .preview-link {
+  margin: 10px 0;
 }
 </style>

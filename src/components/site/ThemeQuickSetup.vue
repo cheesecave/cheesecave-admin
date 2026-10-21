@@ -250,6 +250,7 @@ function apply() {
       </div>
       <div class="qs-right">
         <ThemePreviewTile
+          compact
           mode="light"
           data-testid="qs-preview-light"
           :primary="derived.primary_light"
@@ -257,6 +258,7 @@ function apply() {
           :card="derived.card_light"
         />
         <ThemePreviewTile
+          compact
           mode="dark"
           data-testid="qs-preview-dark"
           :primary="derived.primary_dark"
@@ -320,7 +322,7 @@ function apply() {
 }
 .qs-swatch {
   position: relative;
-  height: 38px;
+  height: 44px;
   padding: 0 8px;
   border: 1px solid var(--border-default);
   border-radius: 8px;
@@ -431,6 +433,7 @@ function apply() {
   color: var(--el-color-warning-dark-2);
 }
 .qs-depth {
+  margin-top: auto;
   padding-top: 14px;
   border-top: 1px solid var(--border-default);
 }
