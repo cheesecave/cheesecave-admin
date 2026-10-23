@@ -207,10 +207,10 @@ onMounted(load);
               formatDate(row.last_used_at)
             }}</template>
           </el-table-column>
-          <el-table-column label="Ends (idle / at most)" width="260">
+          <el-table-column label="Ends" width="230">
             <template #default="{ row }">
-              {{ formatDate(row.expires_at) }} /
-              {{ formatDate(row.absolute_expires_at) }}
+              <div>Idle: {{ formatDate(row.expires_at) }}</div>
+              <div>Latest: {{ formatDate(row.absolute_expires_at) }}</div>
             </template>
           </el-table-column>
           <el-table-column

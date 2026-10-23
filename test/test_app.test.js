@@ -97,8 +97,24 @@ describe("App shell", () => {
     expect(mocks.router.push).toHaveBeenCalledWith({ path: "/login" });
   });
 
-  it("keeps toast messages below the 60 px top bar so they do not cover its title", () => {
+  it("shows no page until the session is restored, because pages send a visitor without a token to the login", async () => {
+    let finishRestore;
+    mocks.adminStore.restore.mockReturnValueOnce(
+      new Promise((resolve) => (finishRestore = resolve)),
+    );
     const wrapper = mountApp();
+    await flushPromises();
+    expect(wrapper.find('[data-router-view="true"]').exists()).toBe(false);
+
+    mocks.adminStore.isAuthenticated = true;
+    finishRestore(true);
+    await flushPromises();
+    expect(wrapper.find('[data-router-view="true"]').exists()).toBe(true);
+  });
+
+  it("keeps toast messages below the 60 px top bar so they do not cover its title", async () => {
+    const wrapper = mountApp();
+    await flushPromises();
 
     expect(
       wrapper.getComponent(ElConfigProvider).props("message").offset,
