@@ -101,18 +101,100 @@ export async function resetSiteBrandingAsset(token, asset) {
   return response.data;
 }
 
+// How the panel proves who it is. "token": the admin token in memory goes in X-Admin-Token on every request (an older
+// backend, or sessions turned off). "session": the backend set an HttpOnly cookie, so the page holds no token and
+// only sends its own header, which a page of another site cannot add (the backend refuses a change without it).
+let authMode = "token";
+const PANEL_HEADERS = { "X-Requested-With": "cheesecave-admin" };
+
+export function setAuthMode(mode) {
+  if (mode !== "token" && mode !== "session") {
+    throw new Error(`Unknown auth mode: ${mode}`);
+  }
+  authMode = mode;
+}
+
+export function getAuthMode() {
+  return authMode;
+}
+
+function authHeaders(token) {
+  return authMode === "session"
+    ? { ...PANEL_HEADERS }
+    : { "X-Admin-Token": token };
+}
+
 /**
- * Create axios instance with admin token
- * @param {string} token - Admin token
+ * Create axios instance for the admin API (token header or session cookie, see setAuthMode)
+ * @param {string} token - Admin token (ignored in session mode)
  * @returns {import('axios').AxiosInstance} Axios instance
  */
 function createAdminClient(token) {
   return axios.create({
     baseURL: "/admin/api",
-    headers: {
-      "X-Admin-Token": token,
-    },
+    headers: authHeaders(token),
   });
+}
+
+// ===== Panel sessions (the admin token exchanged once for a cookie) =====
+
+/**
+ * Exchange the admin token for a session cookie.
+ * @param {string} token - Admin token
+ * @returns {Promise<{expires_at: string, absolute_expires_at: string}>}
+ */
+export async function createPanelSession(token) {
+  const response = await axios.post(
+    "/admin/api/session",
+    { token },
+    { headers: { ...PANEL_HEADERS } },
+  );
+  return response.data;
+}
+
+/** The session the cookie stands for (the panel after a reload); rejects with 401 when there is none. */
+export async function restorePanelSession() {
+  const response = await axios.get("/admin/api/session", {
+    headers: { ...PANEL_HEADERS },
+  });
+  return response.data;
+}
+
+/** Sign out: the backend revokes the session and clears the cookie. */
+export async function endPanelSession() {
+  const response = await axios.delete("/admin/api/session", {
+    headers: { ...PANEL_HEADERS },
+  });
+  return response.data;
+}
+
+/** The panel's own active sessions (not the users' login sessions of the Credentials page). */
+export async function listPanelSessions(token) {
+  const response = await createAdminClient(token).get("/admin-sessions");
+  return response.data;
+}
+
+export async function revokePanelSession(token, sessionId) {
+  const response = await createAdminClient(token).delete(
+    `/admin-sessions/${sessionId}`,
+  );
+  return response.data;
+}
+
+/** End every session but this one. */
+export async function revokeOtherPanelSessions(token) {
+  const response = await createAdminClient(token).post(
+    "/admin-sessions/revoke-others",
+  );
+  return response.data;
+}
+
+// The three repository actions live under /api/repos for a token, and under /admin/api/repos for a session, because
+// the cookie only travels under /admin.
+function repoActionUrl(action) {
+  return authMode === "session"
+    ? `/admin/api/repos/${action}`
+    : `/api/repos/${action}`;
 }
 
 // ===== User Management =====
@@ -252,7 +334,9 @@ export async function createPasswordResetLink(token, username, ttl) {
  */
 export async function revokePasswordResetLink(token, username) {
   const client = createAdminClient(token);
-  const response = await client.delete(`/users/${username}/password-reset-link`);
+  const response = await client.delete(
+    `/users/${username}/password-reset-link`,
+  );
   return response.data;
 }
 
@@ -1021,10 +1105,9 @@ export async function invalidateFallbackUserCacheByUsername(token, username) {
  */
 export async function bulkReplaceFallbackSources(token, sources) {
   const client = createAdminClient(token);
-  const response = await client.put(
-    "/fallback/sources-bulk-replace",
-    { sources },
-  );
+  const response = await client.put("/fallback/sources-bulk-replace", {
+    sources,
+  });
   return response.data;
 }
 
@@ -1283,9 +1366,7 @@ function _generateProbeId() {
  */
 function _readProbeCookie(probeId) {
   const name = `${TRACE_COOKIE_PREFIX}${probeId}`;
-  const match = document.cookie.match(
-    new RegExp(`(?:^|;\\s*)${name}=([^;]+)`),
-  );
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
   if (!match) return null;
   let value = match[1];
   // Defensive: if some upstream (Python ``http.cookies.SimpleCookie``,
@@ -1307,8 +1388,7 @@ function _readProbeCookie(probeId) {
  */
 function _clearProbeCookie(probeId) {
   document.cookie =
-    `${TRACE_COOKIE_PREFIX}${probeId}=; ` +
-    `Max-Age=0; Path=/; SameSite=Lax`;
+    `${TRACE_COOKIE_PREFIX}${probeId}=; ` + `Max-Age=0; Path=/; SameSite=Lax`;
 }
 
 /**
@@ -1506,16 +1586,17 @@ export async function runFallbackProbe(req) {
   let final_response;
   if (isOpaqueRedirect) {
     const boundHop = hops.find(
-      (h) => h.decision === "BIND_AND_RESPOND"
-              || h.decision === "BIND_AND_PROPAGATE"
-              || h.decision === "LOCAL_HIT"
-              || h.decision === "LOCAL_FILTERED"
-              || h.decision === "LOCAL_OTHER_ERROR",
+      (h) =>
+        h.decision === "BIND_AND_RESPOND" ||
+        h.decision === "BIND_AND_PROPAGATE" ||
+        h.decision === "LOCAL_HIT" ||
+        h.decision === "LOCAL_FILTERED" ||
+        h.decision === "LOCAL_OTHER_ERROR",
     );
     final_response = boundHop
       ? {
           status_code: boundHop.status_code,
-          headers: {},  // opaqueredirect: real headers unreadable
+          headers: {}, // opaqueredirect: real headers unreadable
           body_preview:
             "[redirect — body served by upstream after redirect-follow]",
         }
@@ -1555,8 +1636,8 @@ export async function runFallbackProbe(req) {
  * @returns {Promise<Object>} Deletion result
  */
 export async function deleteRepositoryAdmin(token, repoType, namespace, name) {
-  const response = await axios.delete("/api/repos/delete", {
-    headers: { "X-Admin-Token": token },
+  const response = await axios.delete(repoActionUrl("delete"), {
+    headers: authHeaders(token),
     data: { type: repoType, name: name, organization: namespace },
   });
   return response.data;
@@ -1581,14 +1662,14 @@ export async function moveRepositoryAdmin(
   toName,
 ) {
   const response = await axios.post(
-    "/api/repos/move",
+    repoActionUrl("move"),
     {
       fromRepo: `${namespace}/${name}`,
       toRepo: `${toNamespace}/${toName}`,
       type: repoType,
     },
     {
-      headers: { "X-Admin-Token": token },
+      headers: authHeaders(token),
     },
   );
   return response.data;
@@ -1604,13 +1685,13 @@ export async function moveRepositoryAdmin(
  */
 export async function squashRepositoryAdmin(token, repoType, namespace, name) {
   const response = await axios.post(
-    "/api/repos/squash",
+    repoActionUrl("squash"),
     {
       repo: `${namespace}/${name}`,
       type: repoType,
     },
     {
-      headers: { "X-Admin-Token": token },
+      headers: authHeaders(token),
     },
   );
   return response.data;

@@ -18,6 +18,9 @@ onMounted(async () => {
   // the requested page is only known once it is ready.
   await router.isReady();
 
+  // A reload keeps the session: ask the backend whether the cookie still stands for one before deciding
+  await adminStore.restore();
+
   // Redirect to login if not authenticated
   if (
     !adminStore.isAuthenticated &&

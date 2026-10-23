@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   },
   adminStore: {
     isAuthenticated: false,
+    restore: vi.fn(() => Promise.resolve(false)),
   },
   themeStore: {
     init: vi.fn(),
@@ -42,6 +43,7 @@ describe("App shell", () => {
     mocks.router.currentRoute.value.path = "/";
     mocks.router.currentRoute.value.fullPath = "/";
     mocks.adminStore.isAuthenticated = false;
+    mocks.adminStore.restore.mockImplementation(() => Promise.resolve(false));
   });
 
   function mountApp() {
@@ -69,6 +71,30 @@ describe("App shell", () => {
     expect(mocks.themeStore.init).toHaveBeenCalledTimes(1);
     expect(mocks.router.push).toHaveBeenCalledWith({ path: "/login" });
     expect(wrapper.find('[data-router-view="true"]').exists()).toBe(true);
+  });
+
+  it("asks the backend whether the cookie still stands for a session before it redirects anybody", async () => {
+    // after a reload: the session is restored, so the administrator stays where they were
+    mocks.adminStore.restore.mockImplementation(async () => {
+      mocks.adminStore.isAuthenticated = true;
+      return true;
+    });
+    mocks.router.currentRoute.value.path = "/users";
+    mocks.router.currentRoute.value.fullPath = "/users";
+
+    mountApp();
+    await flushPromises();
+
+    expect(mocks.adminStore.restore).toHaveBeenCalledTimes(1);
+    expect(mocks.router.push).not.toHaveBeenCalled();
+  });
+
+  it("restores only once the router is ready, and redirects when there is no session to restore", async () => {
+    mountApp();
+    await flushPromises();
+
+    expect(mocks.adminStore.restore).toHaveBeenCalledTimes(1);
+    expect(mocks.router.push).toHaveBeenCalledWith({ path: "/login" });
   });
 
   it("keeps toast messages below the 60 px top bar so they do not cover its title", () => {
