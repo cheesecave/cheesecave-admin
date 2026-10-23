@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted } from "vue";
+import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElConfigProvider } from "element-plus";
 import { useAdminStore } from "@/stores/admin";
@@ -10,6 +10,9 @@ const router = useRouter();
 const adminStore = useAdminStore();
 const themeStore = useThemeStore();
 
+// Pages bounce to /login when they mount without a token, so none may mount before the session is restored
+const settled = ref(false);
+
 onMounted(async () => {
   // Initialize theme
   themeStore.init();
@@ -18,6 +21,9 @@ onMounted(async () => {
   // the requested page is only known once it is ready.
   await router.isReady();
 
+  // A reload keeps the session: ask the backend whether the cookie still stands for one before deciding
+  await adminStore.restore();
+
   // Redirect to login if not authenticated
   if (
     !adminStore.isAuthenticated &&
@@ -25,13 +31,14 @@ onMounted(async () => {
   ) {
     router.push(loginLocation(router.currentRoute.value.fullPath));
   }
+  settled.value = true;
 });
 </script>
 
 <template>
   <!-- Messages appear 72 px from the top: below the 60 px top bar, not over its title. -->
   <el-config-provider :message="{ offset: 72 }">
-    <router-view />
+    <router-view v-if="settled" />
   </el-config-provider>
 </template>
 

@@ -165,6 +165,11 @@ const menuItems = [
     icon: "i-carbon-password",
   },
   {
+    path: "/admin-sessions",
+    label: "Admin Sessions",
+    icon: "i-carbon-devices",
+  },
+  {
     path: "/DatabaseViewer",
     label: "Database",
     icon: "i-carbon-data-table",
@@ -392,8 +397,12 @@ watch(
   color: #fff;
   background: var(--color-info);
 }
-.nav-badge.danger { background: var(--color-error); }
-.nav-badge.warning { background: var(--color-warning); }
+.nav-badge.danger {
+  background: var(--color-error);
+}
+.nav-badge.warning {
+  background: var(--color-warning);
+}
 .admin-layout {
   --admin-header-height: 60px;
   height: 100vh;

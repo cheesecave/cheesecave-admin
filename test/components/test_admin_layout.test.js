@@ -133,6 +133,7 @@ describe("AdminLayout", () => {
     ["/repositories", "Repositories"],
     ["/QuotaOverview", "Quota Overview"],
     ["/tasks", "Background Tasks"],
+    ["/admin-sessions", "Admin Sessions"],
   ])("names the browser tab after the menu entry of %s", (path, label) => {
     mocks.route.path = path;
     mountLayout();
