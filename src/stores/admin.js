@@ -39,6 +39,17 @@ export const useAdminStore = defineStore("admin", () => {
     setAuthMode("token");
   }
 
+  // Only a backend that knows sessions answers with when they end. A 200 without that (a proxy answering every path
+  // with a page) is an older backend, whatever the status says.
+  function endsOf(data) {
+    if (typeof data?.expires_at !== "string") {
+      throw Object.assign(new Error("Not an admin session"), {
+        response: { status: 404 },
+      });
+    }
+    return data;
+  }
+
   function enterSession(ends) {
     token.value = SESSION_MARKER;
     isAuthenticated.value = true;
@@ -53,7 +64,7 @@ export const useAdminStore = defineStore("admin", () => {
   // Actions
   async function login(adminToken) {
     try {
-      enterSession(await createPanelSession(adminToken));
+      enterSession(endsOf(await createPanelSession(adminToken)));
       return true;
     } catch (error) {
       const status = error.response?.status;
@@ -90,7 +101,7 @@ export const useAdminStore = defineStore("admin", () => {
   // off, the backend not answering) simply means the administrator signs in as usual.
   async function restore() {
     try {
-      enterSession(await restorePanelSession());
+      enterSession(endsOf(await restorePanelSession()));
       return true;
     } catch {
       return false;
