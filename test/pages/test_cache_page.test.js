@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   api: {
     getCacheStats: vi.fn(),
     resetCacheMetrics: vi.fn(),
+    clearLocalCache: vi.fn(),
   },
 }));
 
@@ -29,6 +30,17 @@ vi.mock("@/stores/admin", () => ({
 vi.mock("@/utils/api", () => ({
   getCacheStats: (...args) => mocks.api.getCacheStats(...args),
   resetCacheMetrics: (...args) => mocks.api.resetCacheMetrics(...args),
+  clearLocalCache: (...args) => mocks.api.clearLocalCache(...args),
+}));
+
+vi.mock("@/components/ChartCard.vue", () => ({
+  default: defineComponent({
+    name: "ChartCard",
+    props: ["title", "labels", "datasets"],
+    setup() {
+      return () => h("div");
+    },
+  }),
 }));
 
 vi.mock("@/components/AdminLayout.vue", () => ({
@@ -126,6 +138,56 @@ const DISABLED_PAYLOAD = {
 };
 
 const noop = () => {};
+const MEMORY_PAYLOAD = {
+  ...DISABLED_PAYLOAD,
+  backend: {
+    mode: "memory",
+    redis_configured: false,
+    redis_available: false,
+    fallback_enabled: true,
+    reason: "redis_not_configured",
+    instance_id: "worker-a",
+    pid: 42,
+    scope: "process",
+    started_at_ms: 1_700_000_000_000,
+    sampled_at_ms: 1_700_000_060_000,
+    next_retry_at_ms: null,
+  },
+  local: {
+    entries: 9,
+    max_entries: 10,
+    used_bytes: 900,
+    max_bytes: 1000,
+    peak_entries: 10,
+    peak_bytes: 980,
+    hits: 30,
+    misses: 10,
+    sets: 12,
+    evictions: 2,
+    expirations: 3,
+    rejected_oversize: 4,
+    clears: 0,
+    cleanup_interval_seconds: 15,
+    namespaces: [{ namespace: "commit-count", entries: 9, used_bytes: 900 }],
+  },
+  process: { rss_bytes: 104857600, rss_source: "proc" },
+  history: [
+    {
+      timestamp_ms: 1_700_000_000_000,
+      entries: 3,
+      used_bytes: 300,
+      rss_bytes: 94371840,
+    },
+    {
+      timestamp_ms: 1_700_000_060_000,
+      entries: 9,
+      used_bytes: 900,
+      rss_bytes: 104857600,
+    },
+  ],
+};
+
+const mountedPages = [];
 const noopDirective = {
   mounted: noop,
   updated: noop,
@@ -133,14 +195,24 @@ const noopDirective = {
 };
 
 function mountPage() {
-  return mount(CachePage, {
+  const wrapper = mount(CachePage, {
     global: {
-      stubs: ElementPlusStubs,
+      stubs: {
+        ...ElementPlusStubs,
+        ElTooltip: defineComponent({
+          props: ["content"],
+          setup(props, { slots }) {
+            return () => h("span", { title: props.content }, slots.default?.());
+          },
+        }),
+      },
       directives: {
         loading: noopDirective,
       },
     },
   });
+  mountedPages.push(wrapper);
+  return wrapper;
 }
 
 describe("admin cache page", () => {
@@ -151,6 +223,7 @@ describe("admin cache page", () => {
     mocks.adminStore.token = "admin-token";
     mocks.api.getCacheStats.mockReset();
     mocks.api.resetCacheMetrics.mockReset();
+    mocks.api.clearLocalCache.mockReset();
     messageBoxConfirmSpy.mockReset();
     messageSuccessSpy.mockReset();
     messageErrorSpy.mockReset();
@@ -176,6 +249,7 @@ describe("admin cache page", () => {
   });
 
   afterEach(() => {
+    mountedPages.splice(0).forEach((wrapper) => wrapper.unmount());
     vi.useRealTimers();
   });
 
@@ -316,8 +390,7 @@ describe("admin cache page", () => {
     await select.setValue(15);
     await flushPromises();
 
-    vi.advanceTimersByTime(45_000);
-    await flushPromises();
+    await vi.advanceTimersByTimeAsync(45_000);
     // Three ticks of 15 s each fired while auto-refresh was on.
     expect(mocks.api.getCacheStats).toHaveBeenCalledTimes(4);
 
@@ -346,5 +419,335 @@ describe("admin cache page", () => {
     await flushPromises();
     expect(mocks.api.getCacheStats).toHaveBeenCalledTimes(1);
   });
-});
 
+  it("shows bounded memory monitoring and actions without Redis", async () => {
+    mocks.api.getCacheStats.mockResolvedValue(MEMORY_PAYLOAD);
+    const wrapper = mountPage();
+    await flushPromises();
+    expect(wrapper.get('[data-testid="cache-overall"]').text()).toContain(
+      "In-process memory",
+    );
+    expect(wrapper.text()).toContain("worker-a");
+    expect(wrapper.text()).toContain("Redis not configured");
+    expect(wrapper.text()).not.toContain("redis_not_configured");
+    const local = wrapper.get('[data-testid="cache-local"]');
+    expect(local.text()).toContain("900 B");
+    expect(local.text()).toContain("1,000 B");
+    expect(local.text()).toContain("90.0%");
+    expect(local.text()).toContain("75.0%");
+    expect(local.text()).toContain("Capacity pressure");
+    expect(
+      wrapper.get('[data-testid="cache-local-namespaces"]').text(),
+    ).toContain("commit-count");
+    expect(
+      wrapper.get('[data-testid="cache-reset-metrics"]').attributes("disabled"),
+    ).toBeUndefined();
+    expect(
+      wrapper.get('[data-testid="cache-clear-local"]').attributes("disabled"),
+    ).toBeUndefined();
+    expect(wrapper.text()).toContain("Process RSS");
+    expect(wrapper.text()).toContain("100.00 MB");
+    expect(wrapper.text()).toContain("+10.00 MB");
+    expect(wrapper.find('[data-testid="cache-bootstrap"]').exists()).toBe(
+      false,
+    );
+  });
+
+  it("keeps limits available in the legend without flattening small cache trends", async () => {
+    mocks.api.getCacheStats.mockResolvedValue(MEMORY_PAYLOAD);
+    const wrapper = mountPage();
+    await flushPromises();
+    const charts = wrapper.findAllComponents({ name: "ChartCard" });
+    for (const chart of charts.slice(0, 2)) {
+      const [usage, limit] = chart.props("datasets");
+      expect(usage.hidden).not.toBe(true);
+      expect(limit.label).toBe("Limit");
+      expect(limit.hidden).toBe(true);
+      expect(limit.data).toHaveLength(MEMORY_PAYLOAD.history.length);
+    }
+    expect(charts[2].props("datasets")).toHaveLength(1);
+  });
+
+  it("keeps Redis bootstrap visible while a configured Redis is unavailable", async () => {
+    mocks.api.getCacheStats.mockResolvedValue({
+      ...MEMORY_PAYLOAD,
+      backend: {
+        ...MEMORY_PAYLOAD.backend,
+        redis_configured: true,
+        reason: "connection_failed",
+      },
+    });
+    const wrapper = mountPage();
+    await flushPromises();
+    expect(wrapper.find('[data-testid="cache-bootstrap"]').exists()).toBe(true);
+    expect(wrapper.get('[data-testid="cache-overall"]').text()).toContain(
+      "Redis unavailable",
+    );
+    expect(wrapper.text()).not.toContain("connection_failed");
+  });
+
+  it("clears only the displayed process after confirmation and sends its identity", async () => {
+    mocks.api.getCacheStats.mockResolvedValue(MEMORY_PAYLOAD);
+    mocks.api.clearLocalCache.mockResolvedValue({
+      cleared: 9,
+      instance_id: "worker-a",
+    });
+    messageBoxConfirmSpy.mockResolvedValue("confirm");
+    const wrapper = mountPage();
+    await flushPromises();
+    await wrapper.get('[data-testid="cache-clear-local"]').trigger("click");
+    await flushPromises();
+    expect(messageBoxConfirmSpy.mock.calls[0][0]).toContain("worker-a");
+    expect(messageBoxConfirmSpy.mock.calls[0][0]).toContain("Redis");
+    expect(mocks.api.clearLocalCache).toHaveBeenCalledWith(
+      "admin-token",
+      "worker-a",
+    );
+    expect(mocks.api.resetCacheMetrics).not.toHaveBeenCalled();
+    expect(mocks.api.getCacheStats).toHaveBeenCalledTimes(2);
+  });
+
+  it("resets counters in memory mode without clearing entries", async () => {
+    mocks.api.getCacheStats.mockResolvedValue(MEMORY_PAYLOAD);
+    messageBoxConfirmSpy.mockResolvedValue("confirm");
+    const wrapper = mountPage();
+    await flushPromises();
+    await wrapper.get('[data-testid="cache-reset-metrics"]').trigger("click");
+    await flushPromises();
+    expect(mocks.api.resetCacheMetrics).toHaveBeenCalledWith(
+      "admin-token",
+      "worker-a",
+    );
+    expect(mocks.api.clearLocalCache).not.toHaveBeenCalled();
+    expect(wrapper.get('[data-testid="cache-local"]').text()).toContain(
+      "900 B",
+    );
+  });
+
+  it("keeps the last good snapshot visible and marks it stale on refresh failure", async () => {
+    mocks.api.getCacheStats
+      .mockResolvedValueOnce(MEMORY_PAYLOAD)
+      .mockRejectedValue(new Error("offline"));
+    const wrapper = mountPage();
+    await flushPromises();
+    await wrapper.get('[data-testid="cache-refresh"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.get('[data-testid="cache-stale"]').text()).toContain(
+      "Last successful sample",
+    );
+    expect(wrapper.get('[data-testid="cache-local"]').text()).toContain(
+      "900 B",
+    );
+  });
+
+  it("does not overlap requests or update an unmounted page", async () => {
+    let resolve;
+    mocks.api.getCacheStats.mockReturnValue(
+      new Promise((done) => {
+        resolve = done;
+      }),
+    );
+    const wrapper = mountPage();
+    await wrapper.get('[data-el-select="true"]').setValue(5);
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(mocks.api.getCacheStats).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+    resolve(MEMORY_PAYLOAD);
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(mocks.api.getCacheStats).toHaveBeenCalledTimes(1);
+    expect(messageErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it("replaces trends on worker change, bounds history and announces the new scope", async () => {
+    mocks.api.getCacheStats
+      .mockResolvedValueOnce(MEMORY_PAYLOAD)
+      .mockResolvedValue({
+        ...MEMORY_PAYLOAD,
+        backend: {
+          ...MEMORY_PAYLOAD.backend,
+          instance_id: "worker-b",
+          pid: 43,
+        },
+        history: Array.from({ length: 150 }, (_, i) => ({
+          timestamp_ms: i + 1,
+          entries: i,
+          used_bytes: i,
+          rss_bytes: null,
+        })),
+        process: { rss_bytes: null, rss_source: null },
+      });
+    const wrapper = mountPage();
+    await flushPromises();
+    await wrapper.get('[data-testid="cache-refresh"]').trigger("click");
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="cache-instance-change"]').text(),
+    ).toContain("worker-b");
+    const chart = wrapper.findAllComponents({ name: "ChartCard" })[0];
+    expect(chart.props("labels")).toHaveLength(120);
+    expect(chart.props("datasets")[0].data).not.toContain(900 / 1024);
+    expect(wrapper.text()).toContain("RSS is unavailable");
+  });
+
+  it("does not clear when cancelled and reports a different-worker conflict", async () => {
+    mocks.api.getCacheStats.mockResolvedValue(MEMORY_PAYLOAD);
+    messageBoxConfirmSpy
+      .mockRejectedValueOnce("cancel")
+      .mockResolvedValue("confirm");
+    mocks.api.clearLocalCache.mockRejectedValue({
+      response: {
+        status: 409,
+        data: { detail: "Different process; refresh and retry" },
+      },
+    });
+    const wrapper = mountPage();
+    await flushPromises();
+    await wrapper.get('[data-testid="cache-clear-local"]').trigger("click");
+    await flushPromises();
+    expect(mocks.api.clearLocalCache).not.toHaveBeenCalled();
+    await wrapper.get('[data-testid="cache-clear-local"]').trigger("click");
+    await flushPromises();
+    expect(messageErrorSpy).toHaveBeenCalledWith(
+      "Different process; refresh and retry",
+    );
+    expect(messageSuccessSpy).not.toHaveBeenCalled();
+  });
+
+  it("uses measured Redis state and renders local zero occupancy without inventing RSS", async () => {
+    mocks.api.getCacheStats.mockResolvedValue({
+      ...ENABLED_PAYLOAD,
+      backend: {
+        ...MEMORY_PAYLOAD.backend,
+        mode: "redis",
+        reason: "connected",
+        redis_available: true,
+      },
+      local: {
+        ...MEMORY_PAYLOAD.local,
+        entries: 0,
+        used_bytes: 0,
+        hits: 0,
+        misses: 0,
+        namespaces: [],
+      },
+      process: { rss_bytes: null },
+      history: [],
+    });
+    const wrapper = mountPage();
+    await flushPromises();
+    expect(wrapper.get('[data-testid="cache-overall"]').text()).toContain(
+      "Redis",
+    );
+    expect(wrapper.text()).not.toContain("connected");
+    expect(wrapper.get('[data-testid="cache-local"]').text()).toContain("0 B");
+    expect(wrapper.text()).toContain("RSS is unavailable");
+    expect(
+      wrapper
+        .find('[data-el-empty="true"][data-description="No samples yet"]')
+        .exists(),
+    ).toBe(true);
+    expect(
+      wrapper
+        .find('[data-el-empty="true"][data-description="Local cache is empty"]')
+        .exists(),
+    ).toBe(true);
+    expect(wrapper.findAllComponents({ name: "ChartCard" })).toHaveLength(0);
+  });
+
+  it("marks the hard-limit region and shows decreases over the same process window", async () => {
+    mocks.api.getCacheStats.mockResolvedValue({
+      ...MEMORY_PAYLOAD,
+      backend: {
+        ...MEMORY_PAYLOAD.backend,
+        next_retry_at_ms: 1_700_000_065_000,
+      },
+      local: {
+        ...MEMORY_PAYLOAD.local,
+        used_bytes: 960,
+        entries: 10,
+      },
+      history: [
+        {
+          timestamp_ms: 1_700_000_000_000,
+          entries: 10,
+          used_bytes: 1000,
+          rss_bytes: 104857600,
+        },
+        {
+          timestamp_ms: 1_700_000_060_000,
+          entries: 9,
+          used_bytes: 900,
+          rss_bytes: 94371840,
+        },
+      ],
+    });
+    const wrapper = mountPage();
+    await flushPromises();
+    expect(wrapper.get('[data-testid="cache-local"]').text()).toContain(
+      "Near capacity",
+    );
+    expect(wrapper.text()).toContain("Redis retry");
+    expect(wrapper.text()).toContain("−10.00 MB");
+  });
+
+  it("pauses polling in a hidden tab and resumes without overlapping requests", async () => {
+    mocks.api.getCacheStats.mockResolvedValue(MEMORY_PAYLOAD);
+    const wrapper = mountPage();
+    await flushPromises();
+    await wrapper.get('[data-el-select="true"]').setValue(5);
+    vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(mocks.api.getCacheStats).toHaveBeenCalledTimes(1);
+    vi.spyOn(document, "hidden", "get").mockReturnValue(false);
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(mocks.api.getCacheStats).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(["cache-clear-local", "cache-reset-metrics"])(
+    "ends polling when %s loses authentication",
+    async (selector) => {
+      mocks.api.getCacheStats.mockResolvedValue(MEMORY_PAYLOAD);
+      messageBoxConfirmSpy.mockResolvedValue("confirm");
+      const error = { response: { status: 403 } };
+      mocks.api.clearLocalCache.mockRejectedValue(error);
+      mocks.api.resetCacheMetrics.mockRejectedValue(error);
+      const wrapper = mountPage();
+      await flushPromises();
+      await wrapper.get('[data-el-select="true"]').setValue(5);
+      await wrapper.get(`[data-testid="${selector}"]`).trigger("click");
+      await flushPromises();
+      expect(mocks.adminStore.logout).toHaveBeenCalledTimes(1);
+      expect(mocks.router.push).toHaveBeenCalledWith("/login");
+      await vi.advanceTimersByTimeAsync(20_000);
+      expect(mocks.api.getCacheStats).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("reports reset failures without clearing the cached values", async () => {
+    mocks.api.getCacheStats.mockResolvedValue(MEMORY_PAYLOAD);
+    messageBoxConfirmSpy.mockResolvedValue("confirm");
+    mocks.api.resetCacheMetrics.mockRejectedValue(new Error("reset failed"));
+    const wrapper = mountPage();
+    await flushPromises();
+    await wrapper.get('[data-testid="cache-reset-metrics"]').trigger("click");
+    await flushPromises();
+    expect(messageErrorSpy).toHaveBeenCalledWith("reset failed");
+    expect(wrapper.get('[data-testid="cache-local"]').text()).toContain(
+      "900 B",
+    );
+    expect(mocks.api.clearLocalCache).not.toHaveBeenCalled();
+  });
+
+  it("keeps auto-refresh errors quiet while exposing stale data", async () => {
+    mocks.api.getCacheStats
+      .mockResolvedValueOnce(MEMORY_PAYLOAD)
+      .mockRejectedValue(new Error("offline"));
+    const wrapper = mountPage();
+    await flushPromises();
+    await wrapper.get('[data-el-select="true"]').setValue(5);
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(wrapper.find('[data-testid="cache-stale"]').exists()).toBe(true);
+    expect(messageErrorSpy).not.toHaveBeenCalled();
+  });
+});

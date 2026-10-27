@@ -1697,18 +1697,17 @@ export async function squashRepositoryAdmin(token, repoType, namespace, name) {
   return response.data;
 }
 
-// ===== L2 Cache Monitoring =====
+// ===== Cache Monitoring =====
 
 /**
- * Fetch the L2 (Valkey) cache snapshot: per-namespace hit/miss/error
- * counters, Valkey memory usage + eviction count, and the bootstrap-flush
- * metadata (last seen run_id and timestamp).
+ * Fetch the active Redis / memory backend, bounded local cache and RSS
+ * history for one process, plus Redis memory and per-namespace counters.
  *
  * Backed by GET /admin/api/cache/stats. The endpoint is cheap (~one
  * INFO memory call) and safe to poll on a refresh interval.
  *
  * @param {string} token - Admin token
- * @returns {Promise<Object>} { metrics: {...}, memory: {...} }
+ * @returns {Promise<Object>} { backend, local, process, history, metrics, memory }
  */
 export async function getCacheStats(token) {
   const client = createAdminClient(token);
@@ -1721,15 +1720,25 @@ export async function getCacheStats(token) {
  * contents. Useful when measuring the effect of a config change without
  * a full process restart.
  *
- * Returns 409 if the cache is not enabled / not initialized; the caller
- * should surface that as a friendly message.
+ * An optional instance id rejects requests routed to a different process.
  *
  * @param {string} token - Admin token
  * @returns {Promise<Object>} { reset: true }
  */
-export async function resetCacheMetrics(token) {
+export async function resetCacheMetrics(token, instanceId) {
   const client = createAdminClient(token);
-  const response = await client.post("/cache/metrics/reset");
+  const response = instanceId
+    ? await client.post("/cache/metrics/reset", { instance_id: instanceId })
+    : await client.post("/cache/metrics/reset");
+  return response.data;
+}
+
+/** Clear only the local cache belonging to the sampled process. */
+export async function clearLocalCache(token, instanceId) {
+  const client = createAdminClient(token);
+  const response = await client.post("/cache/local/clear", {
+    instance_id: instanceId,
+  });
   return response.data;
 }
 

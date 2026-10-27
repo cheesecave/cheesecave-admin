@@ -936,6 +936,24 @@ describe("admin API client", () => {
     expect(client.post).toHaveBeenCalledWith("/cache/metrics/reset");
   });
 
+  it("pins cache mutations to the sampled worker and preserves admin authentication", async () => {
+    const api = await loadModule();
+    await api.resetCacheMetrics("admin-token", "worker-a");
+    await api.clearLocalCache("admin-token", "worker-a");
+    expect(client.post).toHaveBeenCalledWith("/cache/metrics/reset", {
+      instance_id: "worker-a",
+    });
+    expect(client.post).toHaveBeenCalledWith("/cache/local/clear", {
+      instance_id: "worker-a",
+    });
+    expect(axios.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseURL: "/admin/api",
+        headers: expect.objectContaining({ "X-Admin-Token": "admin-token" }),
+      }),
+    );
+  });
+
   it("background task helpers route through the admin client", async () => {
     const api = await loadModule();
     client.get

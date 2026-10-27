@@ -59,6 +59,7 @@ export default defineConfig({
         "src/pages/admin-sessions.vue",
         "src/pages/fallback-sources.vue",
         "src/pages/health.vue",
+        "src/pages/cache.vue",
         "src/pages/login.vue",
         "src/pages/\\[...path\\].vue",
         "src/stores/siteBranding.js",

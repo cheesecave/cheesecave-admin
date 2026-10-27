@@ -20,6 +20,7 @@
 9. [Invitation Management](#invitation-management)
 10. [API Reference](#api-reference)
 11. [Security Best Practices](#security-best-practices)
+12. [Cache Monitoring](#cache-monitoring)
 
 ---
 
@@ -35,6 +36,7 @@ The Admin Portal provides a centralized interface for managing your KohakuHub in
 - **Invitation Management** - Create and manage registration invitations
 - **Overview** - Status, what needs attention and live statistics
 - **Bulk Operations** - Recalculate storage for all repositories
+- **Cache Monitoring** - Redis status, bounded local cache capacity and process memory trends
 
 **Access URL:**
 ```
@@ -42,6 +44,40 @@ http://your-hub.com/admin
 ```
 
 ---
+
+## Cache Monitoring
+
+Open **Cache** at `/admin/cache`. The active mode is **Redis**, **In-process memory**
+or **Disabled**. The page remains available when Redis is not configured or is
+unreachable.
+
+The local cache panel shows current and peak accounted bytes and entry counts,
+their configured limits, hit rate, writes, LRU evictions, expired entries,
+oversized writes rejected, and cleanup interval. Capacity indicators turn amber
+at 80% and red at 95%. The namespace table identifies which caches occupy memory.
+
+Memory trends keep the latest 120 server samples for the displayed process.
+Accounted cache bytes and entry counts have optional limit lines; enable **Limit**
+in each chart legend. Limits are hidden by default so small changes remain visible.
+Process RSS is displayed separately because it includes application memory and allocator overhead; rising
+RSS alone does not establish a cache leak, and clearing entries may not immediately
+return memory to the operating system. Compare all three series over a stable
+workload. Hover the information icons for scope and measurement definitions.
+
+Choose an auto-refresh interval to follow usage. Hidden pages pause polling and
+leaving the page cancels the timer. Failed refreshes retain the last good sample
+with its timestamp. Every snapshot identifies its API process. If a load balancer
+routes a refresh to another worker, the panel replaces the history and identifies
+the new process; it never adds unrelated worker histories together. Redis memory
+figures describe the shared Redis server, while local limits and counters are per
+process, not fleet totals.
+
+**Clear local cache** removes cached entries only in the displayed process;
+Redis and other processes are unaffected. **Reset counters** resets that process's
+metrics without clearing entries. Both actions send the sampled process identity;
+the API rejects a request routed to another process with HTTP 409. Refresh and
+retry against the intended worker when this happens. Both actions use the existing
+administrator authentication (panel session or in-memory token).
 
 ## Authentication
 
