@@ -2,6 +2,7 @@
 import {
   unlimitedText,
   unlimitedInput,
+  unlimitedHint,
   isUnlimitedInput,
 } from "@/utils/unlimited";
 import { getApiErrorMessage } from "@/utils/api-error";
@@ -309,7 +310,7 @@ onUnmounted(() => {
         <el-alert type="info" :closable="false" class="mb-6">
           <p class="text-sm">
             Enter quota values as human-readable sizes (e.g., "10GB", "500MB")
-            or "{{ unlimitedInput() }}" for no limit.
+            or {{ unlimitedHint() }} for no limit.
           </p>
           <p class="text-sm mt-2">
             Common sizes: 1GB, 10GB, 50GB, 100GB, 500GB, 1TB

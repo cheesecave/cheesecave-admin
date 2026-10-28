@@ -2,6 +2,7 @@
 import {
   unlimitedText,
   unlimitedInput,
+  unlimitedHint,
   isUnlimitedInput,
 } from "@/utils/unlimited";
 import { getApiErrorMessage } from "@/utils/api-error";
@@ -812,13 +813,16 @@ onMounted(() => {
           <h3 class="text-lg font-bold mb-3">Storage Quotas</h3>
           <el-descriptions :column="2" border>
             <el-descriptions-item label="Private Quota">
-              <QuotaBytes :bytes="selectedUser.private_quota_bytes" />
+              <QuotaBytes
+                :bytes="selectedUser.private_quota_bytes"
+                standalone
+              />
             </el-descriptions-item>
             <el-descriptions-item label="Private Used">
               {{ formatBytes(selectedUser.private_used_bytes) }}
             </el-descriptions-item>
             <el-descriptions-item label="Public Quota">
-              <QuotaBytes :bytes="selectedUser.public_quota_bytes" />
+              <QuotaBytes :bytes="selectedUser.public_quota_bytes" standalone />
             </el-descriptions-item>
             <el-descriptions-item label="Public Used">
               {{ formatBytes(selectedUser.public_used_bytes) }}
@@ -861,8 +865,8 @@ onMounted(() => {
               </template>
             </el-input>
             <div class="text-xs text-gray-500 mt-1">
-              Enter: 100G, 5TB, 500MB, or "{{ unlimitedInput() }}" (decimal: 1GB
-              = 1,000,000,000 bytes)
+              Enter: 100G, 5TB, 500MB, or {{ unlimitedHint() }} (decimal: 1GB =
+              1,000,000,000 bytes)
             </div>
           </el-form-item>
 
@@ -928,7 +932,7 @@ onMounted(() => {
               </template>
             </el-input>
             <div class="text-xs text-gray-500 mt-1">
-              Enter: 100G, 5TB, 500MB, or "{{ unlimitedInput() }}"
+              Enter: 100G, 5TB, 500MB, or {{ unlimitedHint() }}
             </div>
           </el-form-item>
 
