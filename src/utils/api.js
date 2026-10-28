@@ -4,6 +4,7 @@
  */
 
 import axios from "axios";
+import { isUnlimitedInput } from "@/utils/unlimited";
 
 /**
  * Get public site configuration and repository operation capabilities.
@@ -770,7 +771,8 @@ export async function listS3Objects(
  * @returns {string} Formatted size
  */
 export function formatBytes(bytes, decimals = 2) {
-  if (bytes === null || bytes === undefined) return "Unlimited";
+  // an unknown size; a quota without a limit is written by the QuotaBytes component
+  if (bytes === null || bytes === undefined) return "\u2014";
   if (bytes === 0) return "0 Bytes";
 
   const k = 1000;
@@ -788,7 +790,7 @@ export function formatBytes(bytes, decimals = 2) {
  * @returns {number|null} Bytes, or null for unlimited
  */
 export function parseSize(sizeStr) {
-  if (!sizeStr || sizeStr.toLowerCase() === "unlimited") return null;
+  if (!sizeStr || isUnlimitedInput(sizeStr)) return null;
 
   const units = {
     b: 1,

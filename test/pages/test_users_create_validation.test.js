@@ -25,7 +25,7 @@ vi.mock("@/utils/api", () => ({
   deleteUser: vi.fn(),
   setEmailVerification: vi.fn(),
   updateUserQuota: vi.fn(),
-  formatBytes: (bytes) => String(bytes ?? "Unlimited"),
+  formatBytes: (bytes) => String(bytes),
 }));
 vi.mock("@/components/AdminLayout.vue", () => ({
   default: defineComponent({

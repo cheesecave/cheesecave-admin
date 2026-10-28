@@ -1,3 +1,4 @@
+import { defineComponent, h } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -67,5 +68,79 @@ describe("QuotaManager recount", () => {
       "A recount of this namespace is already scheduled",
     );
     vi.useRealTimers();
+  });
+});
+
+describe("QuotaManager with a quota that has no limit", () => {
+  const passthrough = (name) =>
+    defineComponent({
+      name,
+      setup:
+        (_, { slots }) =>
+        () =>
+          h("div", slots.default?.()),
+    });
+  const mountManager = async () => {
+    const wrapper = mount(QuotaManager, {
+      props: { namespace: "aurora-labs", isOrg: true, token: "admin-token" },
+      global: {
+        stubs: {
+          ...ElementPlusStubs,
+          ElDescriptions: passthrough("ElDescriptions"),
+          ElDescriptionsItem: passthrough("ElDescriptionsItem"),
+        },
+      },
+    });
+    await vi.advanceTimersByTimeAsync(1000);
+    await flushPromises();
+    return wrapper;
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    Object.values(api).forEach((fn) => fn.mockReset());
+    api.getQuota.mockResolvedValue({
+      private_quota_bytes: null,
+      public_quota_bytes: 100,
+      private_used_bytes: 1,
+      public_used_bytes: 2,
+      private_available_bytes: null,
+      total_used_bytes: 3,
+    });
+  });
+
+  it("shows the symbol and its word for the quota, and a size for a limit", async () => {
+    const wrapper = await mountManager();
+
+    expect(wrapper.text()).toContain("\u221e No limit");
+    expect(wrapper.text()).toContain("100 B");
+  });
+
+  it("fills the public field with the symbol too when the public quota has no limit", async () => {
+    api.getQuota.mockResolvedValue({
+      private_quota_bytes: 50,
+      public_quota_bytes: null,
+      private_used_bytes: 1,
+      public_used_bytes: 2,
+      total_used_bytes: 3,
+    });
+    const wrapper = await mountManager();
+
+    expect(wrapper.vm.editForm.privateQuota).toBe("50 B");
+    expect(wrapper.vm.editForm.publicQuota).toBe("\u221e");
+  });
+
+  it("fills the form with the symbol, and the help says what to type", async () => {
+    const wrapper = await mountManager();
+    expect(wrapper.vm.editForm.privateQuota).toBe("\u221e");
+    expect(wrapper.vm.editForm.publicQuota).toBe("100 B");
+
+    wrapper.vm.editing = true;
+    await flushPromises();
+    const text = wrapper.text().replace(/\s+/g, " ");
+    expect(text).toContain('or "\u221e" ("no limit" and "unlimited" work too)');
+    expect(
+      wrapper.findAll("input").map((input) => input.attributes("placeholder")),
+    ).toEqual(["e.g., 10GB or \u221e", "e.g., 50GB or \u221e"]);
   });
 });

@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   adminStore: { token: "admin-token", logout: vi.fn() },
   listUsers: vi.fn(),
   getPasswordResetStatus: vi.fn(),
+  getUserInfo: vi.fn(),
 }));
 
 const routeState = vi.hoisted(() => ({ query: {} }));
@@ -21,7 +22,7 @@ vi.mock("@/stores/admin", () => ({
 }));
 vi.mock("@/utils/api", () => ({
   listUsers: (...args) => mocks.listUsers(...args),
-  getUserInfo: vi.fn(),
+  getUserInfo: (...args) => mocks.getUserInfo(...args),
   createUser: vi.fn(),
   deleteUser: vi.fn(),
   setEmailVerification: vi.fn(),
@@ -29,7 +30,7 @@ vi.mock("@/utils/api", () => ({
   getPasswordResetStatus: (...args) => mocks.getPasswordResetStatus(...args),
   createPasswordResetLink: vi.fn(),
   revokePasswordResetLink: vi.fn(),
-  formatBytes: (bytes) => String(bytes ?? "Unlimited"),
+  formatBytes: (bytes) => String(bytes),
 }));
 vi.mock("@/components/AdminLayout.vue", () => ({
   default: defineComponent({
@@ -377,4 +378,128 @@ describe("admin users opened from the Overview", () => {
     await flushPromises();
     expect(wrapper.find('[data-el-dialog="true"][data-title="Create New User"]').exists()).toBe(true);
   });
+});
+
+describe("a quota with no limit", () => {
+  let wrapper;
+  const passthrough = (name) =>
+    defineComponent({
+      name,
+      setup:
+        (_, { slots }) =>
+        () =>
+          h("div", slots.default?.()),
+    });
+  const mountWithDescriptions = () =>
+    mount(UsersPage, {
+      global: {
+        stubs: {
+          ...ElementPlusStubs,
+          ElInput: InputStub,
+          ElSwitch: SwitchStub,
+          ElDescriptions: passthrough("ElDescriptions"),
+          ElDescriptionsItem: passthrough("ElDescriptionsItem"),
+          ElDivider: true,
+        },
+        directives: { loading: {} },
+      },
+    });
+  const noLimit = {
+    ...user(7),
+    username: "noah",
+    private_quota_bytes: null,
+    public_quota_bytes: null,
+    private_used_bytes: 1000,
+    public_used_bytes: 2000,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.adminStore.token = "admin-token";
+    mocks.listUsers.mockResolvedValue({ users: [noLimit], total: 1 });
+    mocks.getUserInfo.mockResolvedValue(noLimit);
+  });
+  afterEach(() => wrapper?.unmount());
+
+  it("is the symbol to the right of the slash in the list, named for a screen reader", async () => {
+    wrapper = mountWithDescriptions();
+    await flushPromises();
+
+    const symbols = wrapper.findAll('[role="img"][aria-label="No limit"]');
+    expect(symbols).toHaveLength(2);
+    expect(wrapper.text().replace(/\s+/g, " ")).toContain("1000 / \u221e");
+  });
+
+  it("has its word beside it where the details show only the quota", async () => {
+    wrapper = mountWithDescriptions();
+    await flushPromises();
+    await wrapper.vm.handleViewUser(noLimit);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("\u221e No limit");
+  });
+
+  it("fills the quota inputs with the symbol and says that the words work too", async () => {
+    wrapper = mountWithDescriptions();
+    await flushPromises();
+    await wrapper.vm.handleViewUser(noLimit);
+    wrapper.vm.openQuotaDialog();
+    await flushPromises();
+
+    expect(wrapper.vm.quotaInputPrivate).toBe("\u221e");
+    expect(wrapper.vm.quotaInputPublic).toBe("\u221e");
+    const text = wrapper.text().replace(/\s+/g, " ");
+    expect(text).toContain('or "\u221e" ("no limit" and "unlimited" work too)');
+    expect(wrapper.vm.formatBytesDecimal(null)).toBe("\u221e");
+    expect(wrapper.vm.formatBytesDecimal(5_000_000_000)).toBe("5.00 GB");
+    const placeholders = wrapper
+      .findAll("input")
+      .map((input) => input.attributes("placeholder"));
+    expect(placeholders).toContain("e.g., 10G, 500MB, \u221e");
+  });
+
+  it("is set by the quick button, whose label has the word", async () => {
+    wrapper = mountWithDescriptions();
+    await flushPromises();
+    await wrapper.vm.handleViewUser({
+      ...noLimit,
+    });
+    mocks.getUserInfo.mockResolvedValue({
+      ...noLimit,
+      private_quota_bytes: 5_000_000_000,
+      public_quota_bytes: 5_000_000_000,
+    });
+    await wrapper.vm.handleViewUser(noLimit);
+    wrapper.vm.openQuotaDialog();
+    await flushPromises();
+    expect(wrapper.vm.quotaInputPublic).toBe("5.00 GB");
+
+    const buttons = wrapper
+      .findAll("button")
+      .filter((button) => button.text() === "\u221e No limit");
+    expect(buttons).toHaveLength(2);
+    await buttons[0].trigger("click");
+    expect(wrapper.vm.quotaInputPublic).toBe("\u221e");
+    expect(wrapper.vm.quotaForm.public_quota_bytes).toBeNull();
+    await buttons[1].trigger("click");
+    expect(wrapper.vm.quotaInputPrivate).toBe("\u221e");
+    expect(wrapper.vm.quotaForm.private_quota_bytes).toBeNull();
+  });
+
+  it.each(["\u221e", "unlimited", "Unlimited", "no limit", "null"])(
+    "is read from %j typed into the input",
+    async (typed) => {
+      wrapper = mountWithDescriptions();
+      await flushPromises();
+      await wrapper.vm.handleViewUser(noLimit);
+      wrapper.vm.openQuotaDialog();
+      wrapper.vm.quotaInputPublic = "10G";
+      wrapper.vm.updateQuotaFromInput("public");
+      expect(wrapper.vm.quotaForm.public_quota_bytes).toBe(10_000_000_000);
+
+      wrapper.vm.quotaInputPublic = typed;
+      wrapper.vm.updateQuotaFromInput("public");
+      expect(wrapper.vm.quotaForm.public_quota_bytes).toBeNull();
+    },
+  );
 });
