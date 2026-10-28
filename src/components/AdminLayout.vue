@@ -197,6 +197,7 @@ watch(
 
 <template>
   <el-container class="admin-layout">
+    <UnlimitedSwitcher />
     <button
       v-if="mobileNavigationOpen"
       type="button"

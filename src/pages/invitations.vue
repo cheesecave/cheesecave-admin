@@ -1,4 +1,9 @@
 <script setup>
+import {
+  unlimitedText,
+  unlimitedInput,
+  isUnlimitedInput,
+} from "@/utils/unlimited";
 import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -114,7 +119,7 @@ async function handleDeleteInvitation(invitation) {
     await ElMessageBox.confirm(
       `Delete this ${invitation.action === "register_account" ? "registration" : "organization"} invitation?
 
-Usage: ${invitation.usage_count} / ${invitation.max_usage === -1 ? "Unlimited" : invitation.max_usage || 1}
+Usage: ${invitation.usage_count} / ${invitation.max_usage === -1 ? unlimitedText("value") : invitation.max_usage || 1}
 ${invitation.email ? `Email: ${invitation.email}` : "General link"}
 
 This action cannot be undone.`,
@@ -280,7 +285,11 @@ onMounted(() => {
                 <div v-if="row.is_reusable" class="text-xs text-gray-500 mt-1">
                   <el-tag size="small" type="success">Reusable</el-tag>
                   Usage: {{ row.usage_count }} /
-                  {{ row.max_usage === -1 ? "∞" : row.max_usage || 1 }}
+                  {{
+                    row.max_usage === -1
+                      ? unlimitedText("value")
+                      : row.max_usage || 1
+                  }}
                 </div>
               </div>
             </template>
@@ -386,8 +395,8 @@ onMounted(() => {
                 1-100)
               </li>
               <li>
-                <strong>Unlimited:</strong> Can be used infinitely (max_usage =
-                -1)
+                <strong>{{ unlimitedText("control") }}:</strong> Can be used
+                without limit (max_usage = -1)
               </li>
             </ul>
           </div>
@@ -411,7 +420,7 @@ onMounted(() => {
               <el-option label="25 uses" :value="25" />
               <el-option label="50 uses" :value="50" />
               <el-option label="100 uses" :value="100" />
-              <el-option label="Unlimited" :value="-1" />
+              <el-option :label="unlimitedText('control')" :value="-1" />
             </el-select>
             <div class="text-xs text-gray-500 mt-1">
               How many times this invitation can be used

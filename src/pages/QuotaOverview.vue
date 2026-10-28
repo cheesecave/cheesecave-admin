@@ -172,7 +172,7 @@ onMounted(() => {
                     </span>
                     <div class="text-xs text-gray-500">
                       {{ formatBytes(row.private_used) }} /
-                      {{ formatBytes(row.private_quota) }}
+                      <QuotaBytes :bytes="row.private_quota" />
                     </div>
                   </div>
                 </template>
@@ -192,7 +192,7 @@ onMounted(() => {
                     </span>
                     <div class="text-xs text-gray-500">
                       {{ formatBytes(row.public_used) }} /
-                      {{ formatBytes(row.public_quota) }}
+                      <QuotaBytes :bytes="row.public_quota" />
                     </div>
                   </div>
                 </template>
@@ -254,7 +254,7 @@ onMounted(() => {
                     </span>
                     <div class="text-xs text-gray-500">
                       {{ formatBytes(row.used_bytes) }} /
-                      {{ formatBytes(row.quota_bytes) }}
+                      <QuotaBytes :bytes="row.quota_bytes" />
                     </div>
                   </div>
                 </template>

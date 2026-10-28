@@ -1,3 +1,4 @@
+import { unlimitedText, isUnlimitedInput } from "@/utils/unlimited";
 /**
  * Admin API client for KohakuHub
  * All functions require admin token to be passed explicitly (no storage)
@@ -770,7 +771,7 @@ export async function listS3Objects(
  * @returns {string} Formatted size
  */
 export function formatBytes(bytes, decimals = 2) {
-  if (bytes === null || bytes === undefined) return "Unlimited";
+  if (bytes === null || bytes === undefined) return unlimitedText("value");
   if (bytes === 0) return "0 Bytes";
 
   const k = 1000;
@@ -788,7 +789,7 @@ export function formatBytes(bytes, decimals = 2) {
  * @returns {number|null} Bytes, or null for unlimited
  */
 export function parseSize(sizeStr) {
-  if (!sizeStr || sizeStr.toLowerCase() === "unlimited") return null;
+  if (!sizeStr || isUnlimitedInput(sizeStr)) return null;
 
   const units = {
     b: 1,

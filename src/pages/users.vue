@@ -1,4 +1,9 @@
 <script setup>
+import {
+  unlimitedText,
+  unlimitedInput,
+  isUnlimitedInput,
+} from "@/utils/unlimited";
 import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -57,7 +62,7 @@ const quotaInputPublic = ref("");
 
 // Parse human-readable size (100G, 5TB, 500MB) to bytes (decimal 1000^k)
 function parseHumanSize(input) {
-  if (!input || input === "null" || input === "unlimited") return null;
+  if (!input || input === "null" || isUnlimitedInput(input)) return null;
 
   const match = input.trim().match(/^(\d+(?:\.\d+)?)\s*([KMGTB]+)?$/i);
   if (!match) return null;
@@ -78,7 +83,7 @@ function parseHumanSize(input) {
 
 // Format bytes to human-readable (decimal)
 function formatBytesDecimal(bytes) {
-  if (bytes === null || bytes === undefined) return "Unlimited";
+  if (bytes === null || bytes === undefined) return unlimitedText("value");
   if (bytes === 0) return "0 B";
 
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -349,11 +354,11 @@ function openQuotaDialog() {
   quotaInputPrivate.value =
     selectedUser.value.private_quota_bytes !== null
       ? formatBytesDecimal(selectedUser.value.private_quota_bytes)
-      : "unlimited";
+      : unlimitedInput();
   quotaInputPublic.value =
     selectedUser.value.public_quota_bytes !== null
       ? formatBytesDecimal(selectedUser.value.public_quota_bytes)
-      : "unlimited";
+      : unlimitedInput();
 
   quotaDialogVisible.value = true;
 }
@@ -565,7 +570,7 @@ onMounted(() => {
                   {{ formatBytes(row.private_used_bytes) }}
                 </span>
                 <span class="text-gray-400 text-xs">
-                  / {{ formatBytes(row.private_quota_bytes) }}
+                  / <QuotaBytes :bytes="row.private_quota_bytes" />
                 </span>
               </div>
             </template>
@@ -590,7 +595,7 @@ onMounted(() => {
                   {{ formatBytes(row.public_used_bytes) }}
                 </span>
                 <span class="text-gray-400 text-xs">
-                  / {{ formatBytes(row.public_quota_bytes) }}
+                  / <QuotaBytes :bytes="row.public_quota_bytes" />
                 </span>
               </div>
             </template>
@@ -736,12 +741,13 @@ onMounted(() => {
             <el-input
               v-model="createForm.private_quota_bytes"
               type="number"
-              placeholder="Leave empty for unlimited"
+              :placeholder="`Leave empty for ${unlimitedText('prose')}`"
             >
               <template #append>bytes</template>
             </el-input>
             <div class="text-xs text-gray-500 mt-1">
-              Example: 10GB = 10737418240 bytes (leave empty for unlimited)
+              Example: 10GB = 10737418240 bytes (leave empty for
+              {{ unlimitedText("prose") }})
             </div>
           </el-form-item>
 
@@ -749,12 +755,13 @@ onMounted(() => {
             <el-input
               v-model="createForm.public_quota_bytes"
               type="number"
-              placeholder="Leave empty for unlimited"
+              :placeholder="`Leave empty for ${unlimitedText('prose')}`"
             >
               <template #append>bytes</template>
             </el-input>
             <div class="text-xs text-gray-500 mt-1">
-              Example: 50GB = 53687091200 bytes (leave empty for unlimited)
+              Example: 50GB = 53687091200 bytes (leave empty for
+              {{ unlimitedText("prose") }})
             </div>
           </el-form-item>
         </el-form>
@@ -805,13 +812,13 @@ onMounted(() => {
           <h3 class="text-lg font-bold mb-3">Storage Quotas</h3>
           <el-descriptions :column="2" border>
             <el-descriptions-item label="Private Quota">
-              {{ formatBytes(selectedUser.private_quota_bytes) }}
+              <QuotaBytes :bytes="selectedUser.private_quota_bytes" />
             </el-descriptions-item>
             <el-descriptions-item label="Private Used">
               {{ formatBytes(selectedUser.private_used_bytes) }}
             </el-descriptions-item>
             <el-descriptions-item label="Public Quota">
-              {{ formatBytes(selectedUser.public_quota_bytes) }}
+              <QuotaBytes :bytes="selectedUser.public_quota_bytes" />
             </el-descriptions-item>
             <el-descriptions-item label="Public Used">
               {{ formatBytes(selectedUser.public_used_bytes) }}
@@ -844,7 +851,7 @@ onMounted(() => {
             <el-input
               v-model="quotaInputPublic"
               @blur="updateQuotaFromInput('public')"
-              placeholder="e.g., 10G, 500MB, unlimited"
+              :placeholder="`e.g., 10G, 500MB, ${unlimitedInput()}`"
             >
               <template #append>
                 <span class="text-xs"
@@ -854,8 +861,8 @@ onMounted(() => {
               </template>
             </el-input>
             <div class="text-xs text-gray-500 mt-1">
-              Enter: 100G, 5TB, 500MB, or "unlimited" (decimal: 1GB =
-              1,000,000,000 bytes)
+              Enter: 100G, 5TB, 500MB, or "{{ unlimitedInput() }}" (decimal: 1GB
+              = 1,000,000,000 bytes)
             </div>
           </el-form-item>
 
@@ -896,10 +903,11 @@ onMounted(() => {
               <el-button
                 size="small"
                 @click="
-                  quotaInputPublic = 'unlimited';
+                  quotaInputPublic = unlimitedInput();
                   updateQuotaFromInput('public');
                 "
-                >Unlimited</el-button
+                title="Unlimited"
+                >{{ unlimitedText("control") }}</el-button
               >
             </div>
           </el-form-item>
@@ -910,7 +918,7 @@ onMounted(() => {
             <el-input
               v-model="quotaInputPrivate"
               @blur="updateQuotaFromInput('private')"
-              placeholder="e.g., 10G, 500MB, unlimited"
+              :placeholder="`e.g., 10G, 500MB, ${unlimitedInput()}`"
             >
               <template #append>
                 <span class="text-xs"
@@ -920,7 +928,7 @@ onMounted(() => {
               </template>
             </el-input>
             <div class="text-xs text-gray-500 mt-1">
-              Enter: 100G, 5TB, 500MB, or "unlimited"
+              Enter: 100G, 5TB, 500MB, or "{{ unlimitedInput() }}"
             </div>
           </el-form-item>
 
@@ -961,10 +969,11 @@ onMounted(() => {
               <el-button
                 size="small"
                 @click="
-                  quotaInputPrivate = 'unlimited';
+                  quotaInputPrivate = unlimitedInput();
                   updateQuotaFromInput('private');
                 "
-                >Unlimited</el-button
+                title="Unlimited"
+                >{{ unlimitedText("control") }}</el-button
               >
             </div>
           </el-form-item>

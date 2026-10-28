@@ -1,4 +1,9 @@
 <script setup>
+import {
+  unlimitedText,
+  unlimitedInput,
+  isUnlimitedInput,
+} from "@/utils/unlimited";
 import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, watch, onUnmounted } from "vue";
 import {
@@ -46,11 +51,11 @@ async function loadQuota() {
     editForm.value.privateQuota =
       quotaInfo.value.private_quota_bytes !== null
         ? formatBytes(quotaInfo.value.private_quota_bytes)
-        : "unlimited";
+        : unlimitedInput();
     editForm.value.publicQuota =
       quotaInfo.value.public_quota_bytes !== null
         ? formatBytes(quotaInfo.value.public_quota_bytes)
-        : "unlimited";
+        : unlimitedInput();
   } catch (error) {
     console.error("Failed to load quota:", error);
     ElMessage.error(
@@ -207,7 +212,7 @@ onUnmounted(() => {
 
           <el-descriptions :column="2" border class="mb-6">
             <el-descriptions-item label="Quota">
-              {{ formatBytes(quotaInfo.private_quota_bytes) }}
+              <QuotaBytes :bytes="quotaInfo.private_quota_bytes" />
             </el-descriptions-item>
             <el-descriptions-item label="Used">
               {{ formatBytes(quotaInfo.private_used_bytes) }}
@@ -250,7 +255,7 @@ onUnmounted(() => {
 
           <el-descriptions :column="2" border class="mb-6">
             <el-descriptions-item label="Quota">
-              {{ formatBytes(quotaInfo.public_quota_bytes) }}
+              <QuotaBytes :bytes="quotaInfo.public_quota_bytes" />
             </el-descriptions-item>
             <el-descriptions-item label="Used">
               {{ formatBytes(quotaInfo.public_used_bytes) }}
@@ -304,7 +309,7 @@ onUnmounted(() => {
         <el-alert type="info" :closable="false" class="mb-6">
           <p class="text-sm">
             Enter quota values as human-readable sizes (e.g., "10GB", "500MB")
-            or "unlimited" for no limit.
+            or "{{ unlimitedInput() }}" for no limit.
           </p>
           <p class="text-sm mt-2">
             Common sizes: 1GB, 10GB, 50GB, 100GB, 500GB, 1TB
@@ -315,28 +320,28 @@ onUnmounted(() => {
           <el-form-item label="Private Quota">
             <el-input
               v-model="editForm.privateQuota"
-              placeholder="e.g., 10GB or unlimited"
+              :placeholder="`e.g., 10GB or ${unlimitedInput()}`"
             >
               <template #prepend>
                 <div class="i-carbon-locked" />
               </template>
             </el-input>
             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Current: {{ formatBytes(quotaInfo?.private_quota_bytes) }}
+              Current: <QuotaBytes :bytes="quotaInfo?.private_quota_bytes" />
             </div>
           </el-form-item>
 
           <el-form-item label="Public Quota">
             <el-input
               v-model="editForm.publicQuota"
-              placeholder="e.g., 50GB or unlimited"
+              :placeholder="`e.g., 50GB or ${unlimitedInput()}`"
             >
               <template #prepend>
                 <div class="i-carbon-unlocked" />
               </template>
             </el-input>
             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Current: {{ formatBytes(quotaInfo?.public_quota_bytes) }}
+              Current: <QuotaBytes :bytes="quotaInfo?.public_quota_bytes" />
             </div>
           </el-form-item>
 
