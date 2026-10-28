@@ -902,12 +902,17 @@ describe("admin API client", () => {
       "backend-down",
     );
 
-    expect(api.formatBytes(null)).toBe("Unlimited");
+    // an unknown size is a dash; a quota without a limit is written by the QuotaBytes component
+    expect(api.formatBytes(null)).toBe("\u2014");
+    expect(api.formatBytes(undefined)).toBe("\u2014");
     expect(api.formatBytes(0)).toBe("0 Bytes");
     expect(api.formatBytes(1530, 1)).toBe("1.5 KB");
     expect(api.parseSize("10GB")).toBe(10_000_000_000);
     expect(api.parseSize("1.5 MB")).toBe(1_500_000);
     expect(api.parseSize("unlimited")).toBeNull();
+    expect(api.parseSize("Unlimited")).toBeNull();
+    expect(api.parseSize("no limit")).toBeNull();
+    expect(api.parseSize("\u221e")).toBeNull();
     expect(api.parseSize("broken")).toBeNull();
   });
 

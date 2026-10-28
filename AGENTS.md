@@ -55,3 +55,7 @@ pnpm build      # production build
   to storage, logs or URLs.
 - Keep production URLs under `/admin/`; the admin image is served by `nginx.conf` at that prefix.
 - Prefer existing components and tokens over new one-off styles.
+- "No limit" (a quota or invitation without a limit) is written as the symbol ∞, not the word "Unlimited". To the right of
+  "10 MB / ∞" use `QuotaBytes` (a size, or the symbol; with `standalone`, "∞ No limit" where the quota is all a field
+  shows) or the `Unlimited` component; in a control or a sentence use the strings of `src/utils/unlimited.js`. An
+  operator may type the symbol, "unlimited" or "no limit" (`isUnlimitedInput`). An unknown size is a dash, never ∞.
