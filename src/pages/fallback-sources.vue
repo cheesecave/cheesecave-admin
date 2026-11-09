@@ -3,6 +3,7 @@ import { getApiErrorMessage } from "@/utils/api-error";
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
+import EntityPicker from "@/components/common/EntityPicker.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
 import ProbeReportView from "@/components/ProbeReportView.vue";
@@ -1003,12 +1004,11 @@ onMounted(async () => {
               </el-select>
             </el-form-item>
             <el-form-item label="Namespace" required>
-              <el-autocomplete
+              <EntityPicker
                 v-model="probeForm.namespace"
-                :fetch-suggestions="fetchNamespaceSuggestions"
-                placeholder="owner / org"
-                clearable
-                style="width: 100%"
+                :kinds="['user', 'org']"
+                allow-free-text
+                placeholder="owner / org (a name, email or id)"
                 data-testid="probe-namespace"
               />
             </el-form-item>
@@ -1152,10 +1152,11 @@ onMounted(async () => {
                         />
                       </el-form-item>
                       <el-form-item label="Namespace">
-                        <el-input
+                        <EntityPicker
                           v-model="src.namespace"
-                          @input="_markDirty"
-                          placeholder="(empty for global)"
+                          :kinds="['user', 'org']"
+                          placeholder="Global (pick a user or organization to limit it)"
+                          @change="_markDirty"
                         />
                       </el-form-item>
                       <el-form-item label="Token">
@@ -1246,23 +1247,15 @@ onMounted(async () => {
                       data-testid="sim-identity-mode"
                     >
                       <el-radio value="anonymous">Anonymous</el-radio>
-                      <el-radio value="username">By username</el-radio>
-                      <el-radio value="user_id">By user_id</el-radio>
+                      <el-radio value="username">As a user</el-radio>
                     </el-radio-group>
                   </el-form-item>
-                  <el-form-item v-if="simIdentity.mode === 'username'" label="Username">
-                    <el-input
+                  <el-form-item v-if="simIdentity.mode === 'username'" label="User">
+                    <EntityPicker
                       v-model="simIdentity.username"
-                      placeholder="e.g. mai_lin"
+                      :kinds="['user']"
+                      placeholder="Search a name, email or id"
                       data-testid="sim-identity-username"
-                    />
-                  </el-form-item>
-                  <el-form-item v-if="simIdentity.mode === 'user_id'" label="User ID">
-                    <el-input-number
-                      v-model="simIdentity.user_id"
-                      :min="1"
-                      style="width: 100%"
-                      data-testid="sim-identity-userid"
                     />
                   </el-form-item>
                 </el-form>
@@ -1722,9 +1715,11 @@ onMounted(async () => {
           </el-form-item>
 
           <el-form-item label="Namespace">
-            <el-input
+            <EntityPicker
               v-model="formData.namespace"
-              placeholder="(empty for global)"
+              :kinds="['user', 'org']"
+              placeholder="Global (pick a user or organization to limit it)"
+              data-testid="source-namespace"
             />
             <div class="form-help">
               Empty = global, or specify user/org name
@@ -1769,12 +1764,11 @@ onMounted(async () => {
             </el-select>
           </el-form-item>
           <el-form-item label="Namespace" required>
-            <el-autocomplete
+            <EntityPicker
               v-model="evictRepoForm.namespace"
-              :fetch-suggestions="fetchNamespaceSuggestions"
-              placeholder="owner / org name"
-              clearable
-              style="width: 100%"
+              :kinds="['user', 'org']"
+              allow-free-text
+              placeholder="owner / org (a name, email or id)"
               data-testid="evict-repo-namespace"
             />
           </el-form-item>
@@ -1812,39 +1806,16 @@ onMounted(async () => {
         <p class="dialog-help">
           Drop every cached source binding belonging to one user (across
           every repo they have a binding for). The next request from that
-          user re-probes the chain. Address by username (resolved
-          server-side) or numeric user_id (script-friendly).
+          user re-probes the chain. Pick the account by name,
+          email or id.
         </p>
         <el-form :model="evictUserForm" label-width="120px">
-          <el-form-item label="Mode" required>
-            <el-radio-group
-              v-model="evictUserForm.mode"
-              data-testid="evict-user-mode"
-            >
-              <el-radio value="username">By username</el-radio>
-              <el-radio value="user_id">By user_id</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item
-            v-if="evictUserForm.mode === 'username'"
-            label="Username"
-            required
-          >
-            <el-autocomplete
+          <el-form-item label="User" required>
+            <EntityPicker
               v-model="evictUserForm.username"
-              :fetch-suggestions="fetchUsernameSuggestions"
-              placeholder="e.g. mai_lin"
-              clearable
-              style="width: 100%"
+              :kinds="['user']"
+              placeholder="Search a name, email or id"
               data-testid="evict-user-username"
-            />
-          </el-form-item>
-          <el-form-item v-else label="User ID" required>
-            <el-input-number
-              v-model="evictUserForm.user_id"
-              :min="1"
-              style="width: 100%"
-              data-testid="evict-user-userid"
             />
           </el-form-item>
         </el-form>

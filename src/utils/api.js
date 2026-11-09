@@ -221,6 +221,29 @@ export async function listUsers(
 }
 
 /**
+ * Suggestions for a picker: users, organizations and repositories matched by name, email, numeric id or full id.
+ * @param {string} token - Admin token
+ * @param {Object} options
+ * @param {string} [options.q] - What was typed (empty lists the first rows by name)
+ * @param {string[]} [options.kinds] - Any of "user", "org", "repo"
+ * @param {number} [options.limit] - Maximum suggestions
+ * @param {string} [options.repoType] - Restrict repository suggestions to model / dataset / space
+ * @returns {Promise<{query: string, results: Object[]}>}
+ */
+export async function lookupEntities(
+  token,
+  { q = "", kinds = ["user", "org"], limit = 8, repoType } = {},
+) {
+  const client = createAdminClient(token);
+  const response = await client.get("/lookup", {
+    params: { q, kinds, limit, repo_type: repoType || undefined },
+    // FastAPI reads a repeated `kinds=user&kinds=org`, not axios' default `kinds[]=user`
+    paramsSerializer: { indexes: null },
+  });
+  return response.data;
+}
+
+/**
  * Get user details
  * @param {string} token - Admin token
  * @param {string} username - Username
@@ -719,11 +742,11 @@ export async function getRepositoryStorageBreakdown(
  */
 export async function listCommits(
   token,
-  { repo_full_id, username, limit = 100, offset = 0 } = {},
+  { repo_full_id, repo_type, username, limit = 100, offset = 0 } = {},
 ) {
   const client = createAdminClient(token);
   const response = await client.get("/commits", {
-    params: { repo_full_id, username, limit, offset },
+    params: { repo_full_id, repo_type, username, limit, offset },
   });
   return response.data;
 }
