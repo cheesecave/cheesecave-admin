@@ -3,6 +3,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ElementPlusStubs } from "../helpers/vue";
+import { EntityPickerStub } from "../helpers/entityPicker";
 
 const mocks = vi.hoisted(() => ({
   router: {
@@ -145,7 +146,7 @@ const noopDirective = {
 function mountPage() {
   return mount(CredentialsPage, {
     global: {
-      stubs: ElementPlusStubs,
+      stubs: { ...ElementPlusStubs, EntityPicker: EntityPickerStub },
       directives: { loading: noopDirective },
     },
   });
@@ -242,16 +243,15 @@ describe("admin credentials page", () => {
     });
   });
 
-  it("re-fetches sessions when Apply is clicked with a username filter", async () => {
+  it("re-fetches sessions when Apply is clicked with a picked user", async () => {
     const wrapper = mountPage();
     await flushPromises();
 
+    await wrapper
+      .get('[data-testid="credentials-user-filter"] input')
+      .setValue("outsider");
+    await flushPromises();
     mocks.api.listAdminSessions.mockClear();
-
-    const userFilter = wrapper.get(
-      '[data-testid="credentials-user-filter"] input',
-    );
-    await userFilter.setValue("outsider");
 
     await wrapper.get('[data-testid="credentials-apply"]').trigger("click");
     await flushPromises();
@@ -260,8 +260,33 @@ describe("admin credentials page", () => {
     const [, options] = mocks.api.listAdminSessions.mock.calls[0];
     expect(options.user).toBe("outsider");
     expect(options.limit).toBe(20);
-    expect(options.offset).toBe(0);
   });
+
+  it("the user filter picks an existing user (the backend answers 404 for an unknown name)", async () => {
+    const wrapper = mountPage();
+    await flushPromises();
+    const filter = wrapper.get('[data-testid="credentials-user-filter"]');
+
+    expect(filter.attributes("data-kinds")).toBe("user");
+    expect(filter.attributes("data-free-text")).toBe("false");
+  });
+
+  it("reloads as soon as a user is picked, and again, for everybody, when the pick is cleared", async () => {
+    const wrapper = mountPage();
+    await flushPromises();
+    mocks.api.listAdminSessions.mockClear();
+
+    const input = wrapper.get('[data-testid="credentials-user-filter"] input');
+    await input.setValue("outsider");
+    await flushPromises();
+    expect(mocks.api.listAdminSessions.mock.calls.at(-1)[1].user).toBe("outsider");
+
+    await input.setValue("");
+    await flushPromises();
+    expect(mocks.api.listAdminSessions).toHaveBeenCalledTimes(2);
+    expect(mocks.api.listAdminSessions.mock.calls.at(-1)[1].user).toBeUndefined();
+  });
+
 
   it("loads API tokens when the operator switches to the Tokens tab", async () => {
     const wrapper = mountPage();
@@ -514,4 +539,88 @@ describe("admin credentials page", () => {
     expect(mocks.dialogs.showError).toHaveBeenCalled();
     expect(mocks.adminStore.logout).not.toHaveBeenCalled();
   });
+
+  describe("bulk revoke picks the account and says who it is", () => {
+    async function openBulk() {
+      mocks.dialogs.confirmDialog.mockResolvedValue(undefined);
+      mocks.api.revokeAdminSessionsBulk.mockResolvedValue({ revoked: 2 });
+      const wrapper = mountPage();
+      await flushPromises();
+      wrapper.vm.bulkRevokeOpen = true;
+      await flushPromises();
+      const picker = wrapper.findAllComponents(EntityPickerStub).find((c) => c.attributes("data-testid") === "credentials-bulk-user");
+      return { wrapper, picker };
+    }
+    const pick = async (picker, item) => {
+      picker.vm.$emit("update:modelValue", item.username);
+      picker.vm.$emit("change", item);
+      await flushPromises();
+    };
+
+    it("asks for a user to pick, and the label says user, not username", async () => {
+      const { wrapper, picker } = await openBulk();
+
+      expect(picker.attributes("data-kinds")).toBe("user");
+      expect(picker.attributes("data-free-text")).toBe("false");
+      expect(wrapper.html()).toContain('label="User (optional)"');
+    });
+
+    it("names the account, with its email and id, in the confirmation", async () => {
+      const { wrapper, picker } = await openBulk();
+      await pick(picker, { username: "leo_park", email: "leo.park@example.org", id: 2 });
+
+      await wrapper.vm.submitBulkRevoke();
+      await flushPromises();
+
+      expect(mocks.dialogs.confirmDialog.mock.calls[0][1]).toBe(
+        "Revoke every session of leo_park (leo.park@example.org, #2)? This is irreversible.",
+      );
+      expect(mocks.api.revokeAdminSessionsBulk).toHaveBeenCalledWith("admin-token", { user: "leo_park" });
+    });
+
+    it("names an account that has no email by its name alone", async () => {
+      const { wrapper, picker } = await openBulk();
+      await pick(picker, { username: "robot", email: null, id: 9 });
+
+      await wrapper.vm.submitBulkRevoke();
+      await flushPromises();
+
+      expect(mocks.dialogs.confirmDialog.mock.calls[0][1]).toBe("Revoke every session of robot? This is irreversible.");
+    });
+
+    it("says every session created before a time when no user is picked, and combines both filters", async () => {
+      const { wrapper, picker } = await openBulk();
+      wrapper.vm.bulkRevokeForm = { user: null, beforeTs: "2026-01-01T00:00:00+00:00" };
+      await wrapper.vm.submitBulkRevoke();
+      await flushPromises();
+      expect(mocks.dialogs.confirmDialog.mock.calls[0][1]).toBe(
+        "Revoke every session created before 2026-01-01T00:00:00+00:00? This is irreversible.",
+      );
+
+      mocks.dialogs.confirmDialog.mockClear();
+      wrapper.vm.bulkRevokeOpen = true;
+      await flushPromises();
+      await pick(picker, { username: "leo_park", email: null, id: 2 });
+      wrapper.vm.bulkRevokeForm = { user: "leo_park", beforeTs: "2026-01-01" };
+      await wrapper.vm.submitBulkRevoke();
+      await flushPromises();
+      expect(mocks.dialogs.confirmDialog.mock.calls[0][1]).toBe(
+        "Revoke every session of leo_park created before 2026-01-01? This is irreversible.",
+      );
+    });
+
+    it("forgets who was picked once the revoke is done", async () => {
+      const { wrapper, picker } = await openBulk();
+      await pick(picker, { username: "leo_park", email: "leo.park@example.org", id: 2 });
+      await wrapper.vm.submitBulkRevoke();
+      await flushPromises();
+      expect(wrapper.vm.bulkRevokeForm).toEqual({ user: null, beforeTs: "" });
+
+      wrapper.vm.bulkRevokeForm = { user: "other", beforeTs: "" };
+      await wrapper.vm.submitBulkRevoke();
+      await flushPromises();
+      expect(mocks.dialogs.confirmDialog.mock.calls[1][1]).toBe("Revoke every session of other? This is irreversible.");
+    });
+  });
 });
+

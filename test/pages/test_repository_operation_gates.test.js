@@ -3,6 +3,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ElementPlusStubs } from "../helpers/vue";
+import { EntityPickerStub } from "../helpers/entityPicker";
 
 const mocks = vi.hoisted(() => ({
   router: { push: vi.fn() },
@@ -55,7 +56,7 @@ import RepositoriesPage from "@/pages/repositories.vue";
 
 function mountPage() {
   return mount(RepositoriesPage, {
-    global: { stubs: ElementPlusStubs },
+    global: { stubs: { ...ElementPlusStubs, EntityPicker: EntityPickerStub } },
   });
 }
 
@@ -151,7 +152,7 @@ describe("admin storage recount of repositories", () => {
     await flushPromises();
     if (namespace) {
       await wrapper
-        .get('input[placeholder="Filter by namespace"]')
+        .get('[data-testid="repo-namespace-filter"] input')
         .setValue(namespace);
     }
     await wrapper

@@ -3,6 +3,7 @@ import { getApiErrorMessage } from "@/utils/api-error";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
+import EntityPicker from "@/components/common/EntityPicker.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -30,7 +31,7 @@ const PAGE_SIZE = 20;
 
 const activeTab = ref("sessions");
 
-const userFilter = ref("");
+const userFilter = ref(null);
 const unusedForDaysFilter = ref(null);
 const onlyActiveSessions = ref(false);
 
@@ -48,7 +49,8 @@ const sshKeysPage = ref(1);
 
 const loading = ref(false);
 
-const bulkRevokeForm = ref({ user: "", beforeTs: "" });
+const bulkRevokeForm = ref({ user: null, beforeTs: "" });
+const bulkUserItem = ref(null); // who the picker resolved, shown in the confirmation
 const bulkRevokeOpen = ref(false);
 
 function checkAuth() {
@@ -194,6 +196,15 @@ function revokeSshKey(row) {
   });
 }
 
+// "Revoke every session of alice (alice@example.org, #12) created before 2026-01-01? ..." instead of a JSON dump.
+function bulkRevokeSummary(body) {
+  const who = body.user
+    ? `every session of ${body.user}${bulkUserItem.value?.email ? ` (${bulkUserItem.value.email}, #${bulkUserItem.value.id})` : ""}`
+    : "every session";
+  const when = body.before_ts ? ` created before ${body.before_ts}` : "";
+  return `Revoke ${who}${when}? This is irreversible.`;
+}
+
 async function submitBulkRevoke() {
   const body = {};
   if (bulkRevokeForm.value.user) body.user = bulkRevokeForm.value.user;
@@ -206,7 +217,7 @@ async function submitBulkRevoke() {
   try {
     await confirmDialog(
       "Bulk revoke",
-      `Bulk-revoke sessions matching ${JSON.stringify(body)}? This is irreversible.`,
+      bulkRevokeSummary(body),
       { confirmText: "Revoke all matching" },
     );
   } catch {
@@ -216,7 +227,8 @@ async function submitBulkRevoke() {
     const result = await revokeAdminSessionsBulk(adminStore.token, body);
     showSuccess(`Bulk revoked ${result.revoked} session(s)`);
     bulkRevokeOpen.value = false;
-    bulkRevokeForm.value = { user: "", beforeTs: "" };
+    bulkRevokeForm.value = { user: null, beforeTs: "" };
+    bulkUserItem.value = null;
     await loadSessions();
   } catch (error) {
     handleApiError(error, "Bulk revoke failed");
@@ -256,12 +268,12 @@ onMounted(() => {
 
       <el-card shadow="never" class="mb-4">
         <div class="flex items-center gap-3 flex-wrap">
-          <el-input
+          <EntityPicker
             v-model="userFilter"
-            placeholder="Filter by username..."
-            clearable
-            style="max-width: 240px"
-            @keyup.enter="loadActiveTab"
+            :kinds="['user']"
+            placeholder="All users (search a name, email or id)"
+            style="width: 300px"
+            @change="loadActiveTab"
             data-testid="credentials-user-filter"
           />
           <el-input-number
@@ -495,11 +507,13 @@ onMounted(() => {
         width="500"
       >
         <el-form :model="bulkRevokeForm" label-position="top">
-          <el-form-item label="Username (optional)">
-            <el-input
+          <el-form-item label="User (optional)">
+            <EntityPicker
               v-model="bulkRevokeForm.user"
-              placeholder="e.g. former-employee"
+              :kinds="['user']"
+              placeholder="Search the account (name, email or id)"
               data-testid="credentials-bulk-user"
+              @change="(item) => (bulkUserItem = item)"
             />
           </el-form-item>
           <el-form-item

@@ -3,6 +3,7 @@ import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
+import EntityPicker from "@/components/common/EntityPicker.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
 import FileTree from "@/components/FileTree.vue";
@@ -472,11 +473,13 @@ onMounted(() => {
           </el-form-item>
 
           <el-form-item label="Namespace" class="mb-0">
-            <el-input
+            <EntityPicker
               v-model="filterNamespace"
-              placeholder="Filter by namespace"
-              clearable
-              style="width: 200px"
+              :kinds="['user', 'org']"
+              allow-free-text
+              placeholder="Any namespace"
+              style="width: 240px"
+              data-testid="repo-namespace-filter"
             />
           </el-form-item>
 
@@ -877,9 +880,11 @@ onMounted(() => {
                   </template>
                   <el-form label-position="top">
                     <el-form-item label="To Namespace">
-                      <el-input
+                      <EntityPicker
                         v-model="moveForm.toNamespace"
-                        placeholder="target-org"
+                        :kinds="['user', 'org']"
+                        placeholder="Search the target user or organization"
+                        data-testid="repo-move-namespace"
                       />
                     </el-form-item>
                     <el-form-item label="To Name">
