@@ -715,15 +715,17 @@ export async function getRepositoryStorageBreakdown(
  * List commits
  * @param {string} token - Admin token
  * @param {Object} params - Query parameters
+ * @param {string} [params.repo_full_id] - Only this repository ("owner/name")
+ * @param {string} [params.repo_type] - model / dataset / space; a model and a dataset can share owner/name
  * @returns {Promise<Object>} Commit list
  */
 export async function listCommits(
   token,
-  { repo_full_id, username, limit = 100, offset = 0 } = {},
+  { repo_full_id, repo_type, username, limit = 100, offset = 0 } = {},
 ) {
   const client = createAdminClient(token);
   const response = await client.get("/commits", {
-    params: { repo_full_id, username, limit, offset },
+    params: { repo_full_id, repo_type, username, limit, offset },
   });
   return response.data;
 }

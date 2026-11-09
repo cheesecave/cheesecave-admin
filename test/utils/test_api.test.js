@@ -30,6 +30,25 @@ describe("admin API client", () => {
     client.delete.mockResolvedValue({ data: {} });
   });
 
+  it("passes the repository type to the commit listing, so a dataset is not answered with a model of the same name", async () => {
+    const api = await loadModule();
+
+    await api.listCommits("admin-token", {
+      repo_full_id: "owner/same",
+      repo_type: "dataset",
+    });
+
+    expect(client.get).toHaveBeenCalledWith("/commits", {
+      params: {
+        repo_full_id: "owner/same",
+        repo_type: "dataset",
+        username: undefined,
+        limit: 100,
+        offset: 0,
+      },
+    });
+  });
+
   it("routes admin endpoints through axios clients with the admin token header", async () => {
     const api = await loadModule();
 
