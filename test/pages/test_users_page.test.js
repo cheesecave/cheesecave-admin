@@ -2,6 +2,8 @@ import { defineComponent, h } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ElMessage } from "element-plus";
+
 import { ElementPlusStubs } from "../helpers/vue";
 
 const mocks = vi.hoisted(() => ({
@@ -377,6 +379,52 @@ describe("admin users opened from the Overview", () => {
     wrapper = mountPage();
     await flushPromises();
     expect(wrapper.find('[data-el-dialog="true"][data-title="Create New User"]').exists()).toBe(true);
+  });
+
+  describe("open=<name> (a search result, a quota table) opens that user or organization", () => {
+    const detailDialog = () => wrapper.find('[data-el-dialog="true"][data-title="User Details"]');
+
+    it("searches for the name and opens the details of exactly that account", async () => {
+      mocks.getUserInfo.mockResolvedValue({ id: 3, username: "unlimited", email: "u@example.org", is_org: false });
+      routeState.query = { open: "unlimited" };
+      wrapper = mountPage();
+      await flushPromises();
+
+      expect(mocks.listUsers.mock.calls[0][1].search).toBe("unlimited");
+      expect(mocks.getUserInfo).toHaveBeenCalledWith("admin-token", "unlimited");
+      expect(detailDialog().exists()).toBe(true);
+      expect(wrapper.vm.searchQuery).toBe("unlimited");
+    });
+
+    it("says so, and opens nothing, when no such account exists", async () => {
+      const error = vi.spyOn(ElMessage, "error").mockImplementation(() => {});
+      mocks.getUserInfo.mockRejectedValue({ response: { status: 404, data: { detail: { error: "User not found: ghost" } } } });
+      routeState.query = { open: "ghost" };
+      wrapper = mountPage();
+      await flushPromises();
+
+      expect(error).toHaveBeenCalledWith("User not found: ghost");
+      expect(detailDialog().exists()).toBe(false);
+      error.mockRestore();
+    });
+
+    it("sends a name with special characters to the API as it is, for the API layer to encode", async () => {
+      mocks.getUserInfo.mockResolvedValue({ id: 5, username: "odd name/x", is_org: false });
+      routeState.query = { open: "odd name/x" };
+      wrapper = mountPage();
+      await flushPromises();
+
+      expect(mocks.getUserInfo).toHaveBeenCalledWith("admin-token", "odd name/x");
+    });
+
+    it("ignores a value that is not a single name", async () => {
+      routeState.query = { open: ["a", "b"] };
+      wrapper = mountPage();
+      await flushPromises();
+
+      expect(mocks.getUserInfo).not.toHaveBeenCalled();
+      expect(mocks.listUsers.mock.calls[0][1].search).toBeUndefined();
+    });
   });
 });
 

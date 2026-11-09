@@ -67,6 +67,28 @@ describe("admin API client", () => {
     });
   });
 
+  it("puts a user or repository name into the path as one encoded segment, and refuses an empty or dot-only one", async () => {
+    const api = await loadModule();
+
+    await api.getUserInfo("admin-token", "a b/c?d#e");
+    await api.getRepositoryDetails("admin-token", "model", "own er", "na/me");
+    await api.getRepositoryFiles("admin-token", "dataset", "o", "n", "main");
+    await api.getRepositoryStorageBreakdown("admin-token", "space", "o", "n");
+
+    expect(client.get).toHaveBeenCalledWith("/users/a%20b%2Fc%3Fd%23e");
+    expect(client.get).toHaveBeenCalledWith("/repositories/model/own%20er/na%2Fme");
+    expect(client.get.mock.calls.map((c) => c[0])).toEqual(
+      expect.arrayContaining(["/repositories/dataset/o/n/files", "/repositories/space/o/n/storage-breakdown"]),
+    );
+
+    client.get.mockClear();
+    for (const bad of ["", ".", "..", undefined, null]) {
+      await expect(api.getUserInfo("admin-token", bad)).rejects.toThrow("Invalid path segment");
+      await expect(api.getRepositoryDetails("admin-token", "model", "o", bad)).rejects.toThrow("Invalid path segment");
+    }
+    expect(client.get).not.toHaveBeenCalled();
+  });
+
   it("routes admin endpoints through axios clients with the admin token header", async () => {
     const api = await loadModule();
 
@@ -343,8 +365,11 @@ describe("admin API client", () => {
     expect(client.get).toHaveBeenCalledWith("/storage/objects", {
       params: { prefix: "models/", limit: 100 },
     });
+    // `types` must go out as types=users&types=repos: the backend reads a repeated parameter, and the bracketed form axios
+    // writes by default (types[]=users) is not read at all, so the backend fell back to its default types and ignored `orgs`.
     expect(client.get).toHaveBeenCalledWith("/search", {
       params: { q: "mai", types: ["users", "repos"], limit: 8 },
+      paramsSerializer: { indexes: null },
     });
     expect(client.post).toHaveBeenCalledWith("/database/query", {
       sql: "select 1",

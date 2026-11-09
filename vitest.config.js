@@ -94,6 +94,7 @@ export default defineConfig({
         "src/components/common/EntityAvatar.vue",
         "src/utils/unlimited.js",
         "src/utils/login-redirect.js",
+        "src/utils/deep-links.js",
         "src/pages/index.vue",
         "src/pages/users.vue",
         "src/pages/commits.vue",

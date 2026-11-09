@@ -31,8 +31,10 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
+const routeState = vi.hoisted(() => ({ query: {} }));
 vi.mock("vue-router", () => ({
   useRouter: () => mocks.router,
+  useRoute: () => routeState,
 }));
 
 vi.mock("@/stores/admin", () => ({
@@ -167,6 +169,7 @@ describe("admin credentials page", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    routeState.query = {};
   });
 
   it("loads sessions on mount and renders the bulk-revoke entry point", async () => {
@@ -260,6 +263,24 @@ describe("admin credentials page", () => {
     const [, options] = mocks.api.listAdminSessions.mock.calls[0];
     expect(options.user).toBe("outsider");
     expect(options.limit).toBe(20);
+  });
+
+  it("opened with user=<name> (from a link), it lists that user's sessions and shows the pick", async () => {
+    routeState.query = { user: "outsider" };
+    const wrapper = mountPage();
+    await flushPromises();
+
+    expect(mocks.api.listAdminSessions.mock.calls[0][1].user).toBe("outsider");
+    expect(wrapper.get('[data-testid="credentials-user-filter"] input').element.value).toBe("outsider");
+  });
+
+  it("ignores a user parameter that is not a single name", async () => {
+    routeState.query = { user: ["a", "b"] };
+    const wrapper = mountPage();
+    await flushPromises();
+
+    expect(mocks.api.listAdminSessions.mock.calls[0][1].user).toBeUndefined();
+    expect(wrapper.vm.userFilter).toBeNull();
   });
 
   it("the user filter picks an existing user (the backend answers 404 for an unknown name)", async () => {

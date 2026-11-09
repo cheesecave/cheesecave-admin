@@ -119,6 +119,19 @@ export function getAuthMode() {
   return authMode;
 }
 
+/**
+ * One name as one URL path segment. Names reach the API from links and from the page, so a name must not be able to change the
+ * path: it is percent-encoded (a slash or a question mark stays inside the segment), and an empty or dot-only segment, which a
+ * browser resolves as "stay" or "one level up" before the request leaves, is refused.
+ */
+function pathSegment(value) {
+  const text = String(value ?? "");
+  if (text === "" || text === "." || text === "..") {
+    throw new Error("Invalid path segment");
+  }
+  return encodeURIComponent(text);
+}
+
 function authHeaders(token) {
   return authMode === "session"
     ? { ...PANEL_HEADERS }
@@ -251,7 +264,7 @@ export async function lookupEntities(
  */
 export async function getUserInfo(token, username) {
   const client = createAdminClient(token);
-  const response = await client.get(`/users/${username}`);
+  const response = await client.get(`/users/${pathSegment(username)}`);
   return response.data;
 }
 
@@ -682,7 +695,7 @@ export async function listRepositories(
 export async function getRepositoryDetails(token, repo_type, namespace, name) {
   const client = createAdminClient(token);
   const response = await client.get(
-    `/repositories/${repo_type}/${namespace}/${name}`,
+    `/repositories/${pathSegment(repo_type)}/${pathSegment(namespace)}/${pathSegment(name)}`,
   );
   return response.data;
 }
@@ -705,7 +718,7 @@ export async function getRepositoryFiles(
 ) {
   const client = createAdminClient(token);
   const response = await client.get(
-    `/repositories/${repo_type}/${namespace}/${name}/files`,
+    `/repositories/${pathSegment(repo_type)}/${pathSegment(namespace)}/${pathSegment(name)}/files`,
     { params: { ref } },
   );
   return response.data;
@@ -727,7 +740,7 @@ export async function getRepositoryStorageBreakdown(
 ) {
   const client = createAdminClient(token);
   const response = await client.get(
-    `/repositories/${repo_type}/${namespace}/${name}/storage-breakdown`,
+    `/repositories/${pathSegment(repo_type)}/${pathSegment(namespace)}/${pathSegment(name)}/storage-breakdown`,
   );
   return response.data;
 }
@@ -903,10 +916,10 @@ export async function deleteInvitation(token, invitationToken) {
 // ===== Global Search =====
 
 /**
- * Global search across users, repositories, and commits
+ * Global search across users, organizations, repositories, and commits
  * @param {string} token - Admin token
  * @param {string} q - Search query
- * @param {Array<string>} types - Types to search (users, repos, commits)
+ * @param {Array<string>} types - Types to search (users, orgs, repos, commits)
  * @param {number} limit - Max results per type
  * @returns {Promise<Object>} Grouped search results
  */
@@ -919,6 +932,8 @@ export async function globalSearch(
   const client = createAdminClient(token);
   const response = await client.get("/search", {
     params: { q, types, limit },
+    // types=users&types=orgs (repeated), the form the backend reads; axios' default types[]=users is ignored
+    paramsSerializer: { indexes: null },
   });
   return response.data;
 }

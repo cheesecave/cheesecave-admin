@@ -1,7 +1,7 @@
 <script setup>
 import { getApiErrorMessage } from "@/utils/api-error";
 import { computed, onMounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
 import EntityPicker from "@/components/common/EntityPicker.vue";
 import AdminPage from "@/components/AdminPage.vue";
@@ -25,13 +25,15 @@ import {
 import dayjs from "dayjs";
 
 const router = useRouter();
+const route = useRoute();
 const adminStore = useAdminStore();
 
 const PAGE_SIZE = 20;
 
 const activeTab = ref("sessions");
 
-const userFilter = ref(null);
+// user=<name> (a link from another page) starts with that user chosen
+const userFilter = ref(typeof route.query.user === "string" && route.query.user ? route.query.user : null);
 const unusedForDaysFilter = ref(null);
 const onlyActiveSessions = ref(false);
 

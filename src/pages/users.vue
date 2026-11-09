@@ -449,9 +449,13 @@ function isQuotaExceeded(used, quota) {
   return used > quota;
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (route.query.create === "1") dialogVisible.value = true;
-  loadUsers();
+  // open=<name>: a search result or a quota table points at one account; list it and show its details.
+  const open = typeof route.query.open === "string" ? route.query.open : "";
+  if (open) searchQuery.value = open;
+  await loadUsers();
+  if (open) await handleViewUser({ username: open });
 });
 </script>
 

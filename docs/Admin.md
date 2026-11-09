@@ -99,11 +99,11 @@ The landing page answers three questions, top to bottom: **is everything running
 
 The data refreshes by itself (every 15 s, 30 s or 1 min, or manually) while the tab is visible; the header shows when it was last updated and marks stale data. If a refresh fails, the last good data stays on screen, greyed. The sidebar badges (Background Tasks, Health, Quota Overview, Storage) use the same refresh, so they are visible from every page.
 
-**Ctrl+K** opens a box that lists pages and actions before you type. From two characters on it also searches users, repositories and commits, and keeps the pages and actions whose name contains what you typed (for example `fail` finds "Failed tasks, last 24 h") above the search results. ↑ and ↓ move through the actions and then the results as one list, and Enter opens the selected one.
+**Ctrl+K** opens a box that lists pages and actions before you type. From two characters on it also searches users, organizations (with their picture), repositories and commits, and keeps the pages and actions whose name contains what you typed (for example `fail` finds "Failed tasks, last 24 h") above the search results. ↑ and ↓ move through the actions and then the results as one list, and Enter opens the selected one. A result opens the thing itself: a user or an organization opens its details on Users, a repository opens its details on Repositories (a model and a dataset of the same name stay apart), and a commit opens the commits of its repository.
 
 An older backend without `GET /admin/api/overview` is detected automatically; the page then shows a reduced view built from `/stats/detailed` and `/stats/timeseries`.
 
-**Links into the other pages** (also usable by hand): `/tasks?status=failed&window=24h`, `/users?filter=over_quota`, `/users?create=1`, `/users?reset=1`, `/invitations?create=1`, `/storage?tab=orphans|lfs`, `/repositories?q=owner/name`.
+**Links into the other pages** (also usable by hand): `/tasks?status=failed&window=24h`, `/users?filter=over_quota`, `/users?create=1`, `/users?reset=1`, `/invitations?create=1`, `/storage?tab=orphans|lfs`, `/repositories?q=owner/name`. These open one thing: `/users?open=<name>` (a user or an organization), `/repositories?open=<type>:<owner>/<name>` (with `q` to list it), `/commits?repo=<type>:<owner>/<name>&author=<name>` and `/credentials?user=<name>`. A value that is not a name, or a repository reference that is not `model|dataset|space:owner/name`, opens nothing.
 
 ---
 
