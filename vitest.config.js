@@ -90,6 +90,8 @@ export default defineConfig({
         "src/components/QuotaManager.vue",
         "src/components/common/QuotaBytes.vue",
         "src/components/common/Unlimited.vue",
+        "src/components/common/EntityPicker.vue",
+        "src/components/common/EntityAvatar.vue",
         "src/utils/unlimited.js",
         "src/utils/login-redirect.js",
         "src/pages/index.vue",

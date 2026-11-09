@@ -107,6 +107,16 @@ An older backend without `GET /admin/api/overview` is detected automatically; th
 
 ---
 
+## Picking users, organizations and repositories
+
+Where the panel needs to name an account, an organization or a repository (the organization of an invitation, and the pages that filter or act on one), it offers a **picker** instead of a box for an id or an exact name. Type a **name, an email address or a number** (an id: `12` or `#12`) and choose from the list. Each row shows the picture (the uploaded avatar, otherwise the first letter on a colour taken from the name), the name, the email when there is one, and the id. Organizations carry an `Org` badge, disabled accounts a `disabled` one, repositories their type (and `private`), and the part that matched is in bold.
+
+The best match comes first: the account whose id was typed, then exact, prefix and contains matches of the name and of the email. Pasting a full email or id and pressing Enter picks it. A filter also takes text that is not in the list (an author, a namespace on another hub); an action that cannot be undone (moving a repository, revoking sessions) only takes an account that was picked. A model and a dataset that share `owner/name` are two rows.
+
+The suggestions come from `GET /admin/api/lookup` ([Admin API](api/admin.md)); they need a backend that has it.
+
+---
+
 ## User Management
 
 ### List Users

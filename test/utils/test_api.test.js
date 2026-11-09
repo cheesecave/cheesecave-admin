@@ -49,6 +49,24 @@ describe("admin API client", () => {
     });
   });
 
+  it("asks the lookup for suggestions with the kinds repeated (kinds=user&kinds=org), not bracketed", async () => {
+    const api = await loadModule();
+    client.get.mockResolvedValueOnce({ data: { query: "park", results: [{ id: 1 }] } });
+
+    const answer = await api.lookupEntities("admin-token", { q: "park", kinds: ["user", "org"], limit: 5, repoType: "dataset" });
+    await api.lookupEntities("admin-token");
+
+    expect(answer).toEqual({ query: "park", results: [{ id: 1 }] });
+    expect(client.get).toHaveBeenNthCalledWith(1, "/lookup", {
+      params: { q: "park", kinds: ["user", "org"], limit: 5, repo_type: "dataset" },
+      paramsSerializer: { indexes: null },
+    });
+    expect(client.get).toHaveBeenNthCalledWith(2, "/lookup", {
+      params: { q: "", kinds: ["user", "org"], limit: 8, repo_type: undefined },
+      paramsSerializer: { indexes: null },
+    });
+  });
+
   it("routes admin endpoints through axios clients with the admin token header", async () => {
     const api = await loadModule();
 
