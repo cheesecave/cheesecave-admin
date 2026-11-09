@@ -218,6 +218,8 @@ async function loadRepoCommits() {
   try {
     const response = await listCommits(adminStore.token, {
       repo_full_id: selectedRepo.value.full_id,
+      // a model and a dataset can share owner/name: ask for this repository's own commits
+      repo_type: selectedRepo.value.repo_type,
       limit: 20,
     });
     repoCommits.value = response.commits || [];
