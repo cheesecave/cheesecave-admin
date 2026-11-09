@@ -5,6 +5,7 @@ import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
+import EntityPicker from "@/components/common/EntityPicker.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -439,13 +440,15 @@ onMounted(() => {
           <el-divider />
 
           <el-form-item label="Auto-Join Organization">
-            <el-input
-              v-model.number="createForm.org_id"
-              type="number"
-              placeholder="Leave empty for no auto-join"
+            <EntityPicker
+              v-model="createForm.org_id"
+              :kinds="['org']"
+              value-as="id"
+              placeholder="Search organizations by name or id (empty: no auto-join)"
+              data-testid="invitation-org-picker"
             />
             <div class="text-xs text-gray-500 mt-1">
-              Optional: Organization ID to join after registration
+              Optional: the organization the new account joins after registration
             </div>
           </el-form-item>
 
