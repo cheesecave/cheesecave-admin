@@ -1,24 +1,27 @@
 <script setup>
 import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
 import EntityPicker from "@/components/common/EntityPicker.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
 import { useAdminStore } from "@/stores/admin";
 import { listCommits } from "@/utils/api";
+import { parseRepoRef } from "@/utils/deep-links";
 import { ElMessage } from "element-plus";
 import dayjs from "dayjs";
 
 const router = useRouter();
+const route = useRoute();
 const adminStore = useAdminStore();
 const commits = ref([]);
 const loading = ref(false);
 
 // Filters
-const filterRepo = ref(null); // "model:owner/name", from the picker
-const filterUsername = ref(null);
+// repo=type:owner/name and author=<name> (a link from another page) start with those chosen
+const filterRepo = ref(parseRepoRef(route.query.repo) ? route.query.repo : null); // "model:owner/name", from the picker
+const filterUsername = ref(typeof route.query.author === "string" && route.query.author ? route.query.author : null);
 
 // Pagination
 const currentPage = ref(1);
@@ -81,9 +84,10 @@ async function loadCommits() {
 
   loading.value = true;
   try {
+    const repo = parseRepoRef(filterRepo.value);
     const response = await listCommits(adminStore.token, {
-      repo_full_id: filterRepo.value ? filterRepo.value.split(":").slice(1).join(":") : undefined,
-      repo_type: filterRepo.value ? filterRepo.value.split(":")[0] : undefined,
+      repo_full_id: repo?.full_id,
+      repo_type: repo?.repo_type,
       username: filterUsername.value || undefined,
       limit: pageSize.value,
       offset: (currentPage.value - 1) * pageSize.value,

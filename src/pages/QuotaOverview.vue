@@ -7,6 +7,7 @@ import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
 import { useAdminStore } from "@/stores/admin";
 import { getQuotaOverview, formatBytes } from "@/utils/api";
+import { repoLink, userLink } from "@/utils/deep-links";
 import { ElMessage } from "element-plus";
 
 const router = useRouter();
@@ -45,12 +46,11 @@ async function loadOverview() {
 }
 
 function navigateToUser(username) {
-  router.push(`/users`);
-  ElMessage.info(`Navigate to user: ${username}`);
+  router.push(userLink(username));
 }
 
-function navigateToRepo() {
-  router.push(`/repositories`);
+function navigateToRepo(row) {
+  router.push(repoLink(row.repo_type, row.full_id));
 }
 
 onMounted(() => {
@@ -265,7 +265,7 @@ onMounted(() => {
                   <el-button
                     type="primary"
                     size="small"
-                    @click="navigateToRepo()"
+                    @click="navigateToRepo(row)"
                   >
                     View
                   </el-button>

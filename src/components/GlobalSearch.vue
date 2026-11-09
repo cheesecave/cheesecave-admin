@@ -3,6 +3,8 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAdminStore } from "@/stores/admin";
 import { globalSearch } from "@/utils/api";
+import { commitsLink, repoLink, userLink } from "@/utils/deep-links";
+import EntityAvatar from "@/components/common/EntityAvatar.vue";
 import { ElMessage } from "element-plus";
 
 const router = useRouter();
@@ -29,6 +31,18 @@ const flatResults = computed(() => {
         data: user,
         label: user.username,
         sublabel: user.email,
+      });
+    });
+  }
+
+  // Add organizations
+  if (searchResults.value.results.organizations) {
+    searchResults.value.results.organizations.forEach((org) => {
+      results.push({
+        type: "org",
+        data: org,
+        label: org.username,
+        sublabel: org.email || "Organization",
       });
     });
   }
@@ -157,7 +171,7 @@ async function performSearch() {
     searchResults.value = await globalSearch(
       adminStore.token,
       searchQuery.value,
-      ["users", "repos", "commits"],
+      ["users", "orgs", "repos", "commits"],
       10,
     );
     selectedIndex.value = 0; // Reset selection
@@ -200,24 +214,22 @@ function handleKeyDown(event) {
   }
 }
 
+// A result opens the thing itself: the user or organization, the repository, the repository's commits.
 function handleSelectResult(result) {
   closeDialog();
 
   switch (result.type) {
     case "user":
-      router.push(`/users`);
-      // Could expand to open user detail modal in the future
-      ElMessage.success(`Navigate to user: ${result.data.username}`);
+    case "org":
+      router.push(userLink(result.data.username));
       break;
 
     case "repo":
-      router.push(`/repositories`);
-      ElMessage.success(`Navigate to repository: ${result.data.full_id}`);
+      router.push(repoLink(result.data.repo_type, result.data.full_id));
       break;
 
     case "commit":
-      router.push(`/commits`);
-      ElMessage.success(`Navigate to commits`);
+      router.push(commitsLink(result.data.repo_type, result.data.repo_full_id));
       break;
   }
 }
@@ -298,7 +310,7 @@ defineExpose({ openDialog });
       <!-- Search Input -->
       <el-input
         v-model="searchQuery"
-        placeholder="Search users, repositories, commits... (Type to search)"
+        placeholder="Search users, organizations, repositories, commits... (Type to search)"
         size="large"
         clearable
         @input="handleSearchInput"
@@ -341,8 +353,8 @@ defineExpose({ openDialog });
             <el-tag size="small" effect="plain">{{ c.kind }}</el-tag>
           </div>
           <p v-if="paletteMode" class="hint-text text-xs mt-2">
-            Type two or more characters to search users, repositories and
-            commits • <kbd>↑</kbd> <kbd>↓</kbd> to move • <kbd>Enter</kbd> to
+            Type two or more characters to search users, organizations,
+            repositories and commits • <kbd>↑</kbd> <kbd>↓</kbd> to move • <kbd>Enter</kbd> to
             open • <kbd>Esc</kbd> to close
           </p>
         </div>
@@ -391,7 +403,7 @@ defineExpose({ openDialog });
                   })
                 "
               >
-                <div class="i-carbon-user text-blue-600" />
+                <EntityAvatar :item="user" :size="28" />
                 <div class="result-content">
                   <div class="result-label">{{ user.username }}</div>
                   <div class="result-sublabel">{{ user.email }}</div>
@@ -404,6 +416,51 @@ defineExpose({ openDialog });
                 >
                   Verified
                 </el-tag>
+              </div>
+            </div>
+
+            <!-- Organizations Section -->
+            <div
+              v-if="
+                searchResults?.results?.organizations &&
+                searchResults.results.organizations.length > 0
+              "
+              class="result-section"
+            >
+              <div class="section-header">
+                <div class="i-carbon-group text-purple-600" />
+                <span
+                  >Organizations ({{
+                    searchResults.results.organizations.length
+                  }})</span
+                >
+              </div>
+              <div
+                v-for="org in searchResults.results.organizations"
+                :key="`org-${org.id}`"
+                class="result-item"
+                :class="{
+                  selected:
+                    selectedResult?.type === 'org' &&
+                    selectedResult?.data.id === org.id,
+                }"
+                @click="
+                  handleSelectResult({
+                    type: 'org',
+                    data: org,
+                    label: org.username,
+                    sublabel: org.email || 'Organization',
+                  })
+                "
+              >
+                <EntityAvatar :item="org" :size="28" />
+                <div class="result-content">
+                  <div class="result-label">{{ org.username }}</div>
+                  <div class="result-sublabel">
+                    {{ org.email || "Organization" }}
+                  </div>
+                </div>
+                <el-tag type="info" size="small" effect="plain">Org</el-tag>
               </div>
             </div>
 

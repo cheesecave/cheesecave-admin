@@ -13,7 +13,8 @@ const mocks = vi.hoisted(() => ({
   api: { listCommits: vi.fn() },
 }));
 
-vi.mock("vue-router", () => ({ useRouter: () => mocks.router }));
+const routeState = vi.hoisted(() => ({ query: {} }));
+vi.mock("vue-router", () => ({ useRouter: () => mocks.router, useRoute: () => routeState }));
 vi.mock("@/stores/admin", () => ({ useAdminStore: () => mocks.adminStore }));
 vi.mock("@/utils/api", () => ({ ...mocks.api }));
 vi.mock("@/components/AdminLayout.vue", () => ({
@@ -47,6 +48,7 @@ describe("commits page", () => {
     mocks.adminStore.token = "admin-token";
     mocks.api.listCommits.mockResolvedValue({ commits: COMMITS });
     error = vi.spyOn(ElMessage, "error").mockImplementation(() => {});
+    routeState.query = {};
   });
 
   describe("filters", () => {
@@ -95,7 +97,7 @@ describe("commits page", () => {
       expect(w.vm.currentPage).toBe(1);
     });
 
-    it("keeps a colon that belongs to the repository name", async () => {
+    it("sends no repository filter for a value that is not type:owner/name", async () => {
       const w = await mountPage();
       await w.get('[data-testid="commits-repo-picker"] input').setValue("model:owner/odd:name");
       mocks.api.listCommits.mockClear();
@@ -103,7 +105,7 @@ describe("commits page", () => {
       await button(w, "Apply Filters").trigger("click");
       await flushPromises();
 
-      expect(mocks.api.listCommits.mock.calls[0][1]).toMatchObject({ repo_full_id: "owner/odd:name", repo_type: "model" });
+      expect(mocks.api.listCommits.mock.calls[0][1]).toMatchObject({ repo_full_id: undefined, repo_type: undefined });
     });
 
     it("asks for the page that was chosen", async () => {
@@ -131,6 +133,47 @@ describe("commits page", () => {
       expect(w.vm.filterUsername).toBeNull();
       expect(w.vm.currentPage).toBe(1);
       expect(mocks.api.listCommits).toHaveBeenCalledWith("admin-token", { repo_full_id: undefined, repo_type: undefined, username: undefined, limit: 20, offset: 0 });
+    });
+  });
+
+  describe("opened from a link (repo=type:owner/name, author=name)", () => {
+    it("starts with that repository and author already chosen", async () => {
+      routeState.query = { repo: "dataset:owner/shared", author: "alice" };
+      const w = await mountPage();
+
+      expect(mocks.api.listCommits).toHaveBeenCalledWith("admin-token", {
+        repo_full_id: "owner/shared",
+        repo_type: "dataset",
+        username: "alice",
+        limit: 20,
+        offset: 0,
+      });
+      expect(w.vm.filterRepo).toBe("dataset:owner/shared");
+      expect(w.get('[data-testid="commits-repo-picker"] input').element.value).toBe("dataset:owner/shared");
+      expect(w.get('[data-testid="commits-author-picker"] input').element.value).toBe("alice");
+    });
+
+    it("takes the repository alone, or the author alone", async () => {
+      routeState.query = { repo: "model:o/n" };
+      await mountPage();
+      expect(mocks.api.listCommits.mock.calls[0][1]).toMatchObject({ repo_full_id: "o/n", repo_type: "model", username: undefined });
+
+      mocks.api.listCommits.mockClear();
+      routeState.query = { author: "alice" };
+      await mountPage();
+      expect(mocks.api.listCommits.mock.calls[0][1]).toMatchObject({ repo_full_id: undefined, username: "alice" });
+    });
+
+    it("ignores a repository that is not type:owner/name, and values that are not text", async () => {
+      routeState.query = { repo: "owner/shared", author: ["a", "b"] };
+      const w = await mountPage();
+
+      expect(mocks.api.listCommits.mock.calls[0][1]).toMatchObject({ repo_full_id: undefined, repo_type: undefined, username: undefined });
+      expect(w.vm.filterRepo).toBeNull();
+      expect(w.vm.filterUsername).toBeNull();
+
+      routeState.query = { repo: ["model:a/b"] };
+      expect((await mountPage()).vm.filterRepo).toBeNull();
     });
   });
 

@@ -174,14 +174,14 @@ describe("GlobalSearch as a command palette", () => {
     expect(mocks.globalSearch).toHaveBeenCalledWith(
       "admin-token",
       "ma",
-      ["users", "repos", "commits"],
+      ["users", "orgs", "repos", "commits"],
       10,
     );
     expect(wrapper.find('[data-testid="palette"]').exists()).toBe(false);
     expect(wrapper.text()).toContain("mai_lin");
 
     await press("Enter");
-    expect(mocks.router.push).toHaveBeenCalledWith("/users");
+    expect(mocks.router.push).toHaveBeenCalledWith({ path: "/users", query: { open: "mai_lin" } });
   });
 
   it("goes back to the palette when the text is cleared", async () => {
@@ -280,7 +280,7 @@ describe("GlobalSearch as a command palette", () => {
       await searchFor("fail");
       await press("ArrowDown");
       await press("Enter");
-      expect(mocks.router.push).toHaveBeenCalledWith("/users");
+      expect(mocks.router.push).toHaveBeenCalledWith({ path: "/users", query: { open: "mai_lin" } });
     });
 
     it("clicking a command in the search view navigates", async () => {
@@ -310,7 +310,7 @@ describe("GlobalSearch as a command palette", () => {
         results: {
           users: [USER],
           repositories: [{ id: 3, full_id: "o/fail-repo", repo_type: "model", owner_username: "o" }],
-          commits: [{ id: 4, commit_id: "abcdef123456", message: "fail", username: "o" }],
+          commits: [{ id: 4, commit_id: "abcdef123456", message: "fail", username: "o", repo_full_id: "o/fail-repo", repo_type: "model" }],
         },
       });
       await open();
@@ -322,7 +322,89 @@ describe("GlobalSearch as a command palette", () => {
       await press("ArrowDown");
       expect(row(3).classes()).toContain("selected");
       await press("Enter");
-      expect(mocks.router.push).toHaveBeenCalledWith("/commits");
+      expect(mocks.router.push).toHaveBeenCalledWith({ path: "/commits", query: { repo: "model:o/fail-repo" } });
+    });
+  });
+
+  describe("results open the thing itself and include organizations", () => {
+    const ORG = { id: 18, username: "aurora-labs", email: null, is_org: true, has_avatar: true };
+    const ORG_WITH_MAIL = { id: 19, username: "mail-org", email: "ops@mail-org.example", is_org: true, has_avatar: false };
+    const REPO = { id: 3, full_id: "o/shared", repo_type: "dataset", owner_username: "o", private: true };
+    const COMMIT = { id: 4, commit_id: "abcdef123456", message: "add data", username: "o", repo_full_id: "o/shared", repo_type: "dataset" };
+    const results = (extra = {}) => ({ results: { users: [USER], organizations: [ORG, ORG_WITH_MAIL], repositories: [REPO], commits: [COMMIT], ...extra } });
+    const rowOf = (text) => wrapper.findAll(".result-item").find((n) => n.text().includes(text));
+    const search = async () => {
+      await open();
+      await type("lab");
+      await vi.advanceTimersByTimeAsync(300);
+      await flushPromises();
+    };
+
+    it("lists organizations in their own section, after the users, with a name, an email when there is one, and a picture", async () => {
+      mocks.globalSearch.mockResolvedValue(results());
+      await search();
+
+      expect(wrapper.text()).toContain("Organizations (2)");
+      const org = rowOf("aurora-labs");
+      expect(org.text()).toContain("Organization");
+      expect(org.find("img").attributes("src")).toBe("/api/organizations/aurora-labs/avatar");
+      expect(rowOf("mail-org").text()).toContain("ops@mail-org.example");
+      expect(rowOf("mail-org").find("img").exists()).toBe(false);
+      const sections = wrapper.findAll(".section-header").map((n) => n.text());
+      expect(sections.findIndex((t) => t.startsWith("Users"))).toBeLessThan(sections.findIndex((t) => t.startsWith("Organizations")));
+    });
+
+    it("shows a user's picture too, and leaves out the section when there are no organizations", async () => {
+      mocks.globalSearch.mockResolvedValue(results({ organizations: [], users: [{ ...USER, has_avatar: true }] }));
+      await search();
+
+      expect(rowOf("mai_lin").find("img").attributes("src")).toBe("/api/users/mai_lin/avatar");
+      expect(wrapper.text()).not.toContain("Organizations (");
+    });
+
+    it("opens an organization like a user, a repository with its type, and a commit's repository", async () => {
+      mocks.globalSearch.mockResolvedValue(results());
+      await search();
+
+      await rowOf("aurora-labs").trigger("click");
+      expect(mocks.router.push).toHaveBeenLastCalledWith({ path: "/users", query: { open: "aurora-labs" } });
+
+      await search();
+      await rowOf("o/shared").trigger("click");
+      expect(mocks.router.push).toHaveBeenLastCalledWith({ path: "/repositories", query: { q: "o/shared", open: "dataset:o/shared" } });
+
+      await search();
+      await rowOf("add data").trigger("click");
+      expect(mocks.router.push).toHaveBeenLastCalledWith({ path: "/commits", query: { repo: "dataset:o/shared" } });
+    });
+
+    it("shows all commits for a commit that has no repository", async () => {
+      mocks.globalSearch.mockResolvedValue(results({ commits: [{ ...COMMIT, repo_full_id: null }] }));
+      await search();
+      await rowOf("add data").trigger("click");
+
+      expect(mocks.router.push).toHaveBeenLastCalledWith({ path: "/commits" });
+    });
+
+    it("walks users, organizations, repositories and commits by one index, and Enter opens an organization", async () => {
+      mocks.globalSearch.mockResolvedValue(results());
+      await search();
+      const labels = () => wrapper.findAll(".result-item").filter((n) => !n.attributes("data-testid")).map((n) => n.find(".result-label").text());
+
+      expect(labels()).toEqual(["mai_lin", "aurora-labs", "mail-org", "o/shared", "add data"]);
+      for (let i = 0; i < 9; i++) await press("ArrowDown"); // stops on the last row, the commit
+      for (let i = 0; i < 3; i++) await press("ArrowUp"); // commit, repository, mail-org, aurora-labs
+      await press("Enter");
+      expect(mocks.router.push).toHaveBeenLastCalledWith({ path: "/users", query: { open: "aurora-labs" } });
+    });
+
+    it("asks for the organization in its placeholder, and does not announce the navigation with a toast", async () => {
+      mocks.globalSearch.mockResolvedValue(results());
+      await search();
+
+      expect(wrapper.get("input").attributes("placeholder")).toContain("organizations");
+      await rowOf("aurora-labs").trigger("click");
+      expect(document.body.textContent).not.toContain("Navigate to");
     });
   });
 });

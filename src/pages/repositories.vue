@@ -8,6 +8,7 @@ import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
 import FileTree from "@/components/FileTree.vue";
 import { useAdminStore } from "@/stores/admin";
+import { parseRepoRef } from "@/utils/deep-links";
 import { useCompactViewport } from "@/composables/useCompactViewport";
 import {
   listRepositories,
@@ -407,9 +408,12 @@ async function confirmDeleteRepo() {
   }
 }
 
-onMounted(() => {
-  loadRepositories();
+onMounted(async () => {
   loadOperationCapabilities();
+  await loadRepositories();
+  // open=type:owner/name: a search result or a quota table points at one repository; show its details
+  const repo = parseRepoRef(route.query.open);
+  if (repo) await handleViewRepo(repo);
 });
 </script>
 

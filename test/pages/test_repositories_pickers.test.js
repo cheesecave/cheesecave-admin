@@ -23,7 +23,8 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("vue-router", () => ({ useRouter: () => mocks.router, useRoute: () => ({ query: {} }) }));
+const routeState = vi.hoisted(() => ({ query: {} }));
+vi.mock("vue-router", () => ({ useRouter: () => mocks.router, useRoute: () => routeState }));
 vi.mock("@/stores/admin", () => ({ useAdminStore: () => mocks.adminStore }));
 vi.mock("@/utils/api", () => ({ ...mocks.api, formatBytes: (value) => String(value ?? 0) }));
 vi.mock("@/components/AdminLayout.vue", () => ({
@@ -60,7 +61,10 @@ describe("repositories: namespaces are picked, not typed", () => {
     mocks.api.getSiteConfig.mockResolvedValue({ capabilities: { repository_operations: {} } });
     mocks.api.moveRepositoryAdmin.mockResolvedValue({});
   });
-  afterEach(() => Object.values(spies).forEach((spy) => spy.mockRestore()));
+  afterEach(() => {
+    Object.values(spies).forEach((spy) => spy.mockRestore());
+    routeState.query = {};
+  });
 
   it("the namespace filter picks a user or organization and also takes any text", async () => {
     const w = await mountPage();
@@ -121,4 +125,40 @@ describe("repositories: namespaces are picked, not typed", () => {
       expect(mocks.api.moveRepositoryAdmin).not.toHaveBeenCalled();
     });
   });
+
+  describe("open=type:owner/name (a search result, a quota table) opens that repository", () => {
+    const dialogOpen = (w) => w.vm.repoDialogVisible;
+
+    it("opens the details of that very repository, of that type, and lists it by its full id", async () => {
+      routeState.query = { q: "owner/shared", open: "dataset:owner/shared" };
+      mocks.api.getRepositoryDetails.mockResolvedValue({ ...REPO, repo_type: "dataset", name: "shared", full_id: "owner/shared" });
+      const w = await mountPage();
+
+      expect(mocks.api.listRepositories.mock.calls[0][1].search).toBe("owner/shared");
+      expect(mocks.api.getRepositoryDetails).toHaveBeenCalledWith("admin-token", "dataset", "owner", "shared");
+      expect(dialogOpen(w)).toBe(true);
+    });
+
+    it("says so when the repository cannot be loaded", async () => {
+      const error = vi.spyOn(ElMessage, "error").mockImplementation(() => {});
+      routeState.query = { open: "model:owner/gone" };
+      mocks.api.getRepositoryDetails.mockRejectedValue({ response: { status: 404, data: { detail: { error: "Repository not found" } } } });
+      const w = await mountPage();
+
+      expect(error).toHaveBeenCalledWith("Repository not found");
+      expect(dialogOpen(w)).toBe(false);
+      error.mockRestore();
+    });
+
+    it("ignores a reference that is not type:owner/name, and a value that is not text", async () => {
+      for (const open of ["owner/shared", "dataset:", ["model:a/b"]]) {
+        routeState.query = { open };
+        const w = await mountPage();
+        expect(mocks.api.getRepositoryDetails).not.toHaveBeenCalled();
+        expect(dialogOpen(w)).toBe(false);
+        w.unmount();
+      }
+    });
+  });
 });
+
