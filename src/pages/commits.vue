@@ -3,6 +3,7 @@ import { getApiErrorMessage } from "@/utils/api-error";
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
+import EntityPicker from "@/components/common/EntityPicker.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -16,8 +17,8 @@ const commits = ref([]);
 const loading = ref(false);
 
 // Filters
-const filterRepoId = ref("");
-const filterUsername = ref("");
+const filterRepo = ref(null); // "model:owner/name", from the picker
+const filterUsername = ref(null);
 
 // Pagination
 const currentPage = ref(1);
@@ -81,7 +82,8 @@ async function loadCommits() {
   loading.value = true;
   try {
     const response = await listCommits(adminStore.token, {
-      repo_full_id: filterRepoId.value || undefined,
+      repo_full_id: filterRepo.value ? filterRepo.value.split(":").slice(1).join(":") : undefined,
+      repo_type: filterRepo.value ? filterRepo.value.split(":")[0] : undefined,
       username: filterUsername.value || undefined,
       limit: pageSize.value,
       offset: (currentPage.value - 1) * pageSize.value,
@@ -145,8 +147,8 @@ function applyFilters() {
 }
 
 function resetFilters() {
-  filterRepoId.value = "";
-  filterUsername.value = "";
+  filterRepo.value = null;
+  filterUsername.value = null;
   currentPage.value = 1;
   loadCommits();
 }
@@ -166,22 +168,26 @@ onMounted(() => {
 
       <!-- Filters -->
       <el-card class="mb-4">
-        <div class="flex gap-4 items-end">
-          <el-form-item label="Repository ID" class="mb-0">
-            <el-input
-              v-model="filterRepoId"
-              placeholder="e.g., org/repo-name"
-              clearable
-              style="width: 250px"
+        <div class="flex flex-wrap gap-4 items-end">
+          <el-form-item label="Repository" class="mb-0">
+            <EntityPicker
+              v-model="filterRepo"
+              :kinds="['repo']"
+              value-as="repo"
+              placeholder="Search owner/name"
+              style="width: 240px"
+              data-testid="commits-repo-picker"
             />
           </el-form-item>
 
           <el-form-item label="Author" class="mb-0">
-            <el-input
+            <EntityPicker
               v-model="filterUsername"
-              placeholder="Filter by username"
-              clearable
-              style="width: 200px"
+              :kinds="['user']"
+              allow-free-text
+              placeholder="Anyone (a name, email or id)"
+              style="width: 220px"
+              data-testid="commits-author-picker"
             />
           </el-form-item>
 

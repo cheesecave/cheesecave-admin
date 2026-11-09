@@ -96,6 +96,7 @@ export default defineConfig({
         "src/utils/login-redirect.js",
         "src/pages/index.vue",
         "src/pages/users.vue",
+        "src/pages/commits.vue",
         "src/pages/invitations.vue",
         "src/pages/repositories.vue",
         "src/pages/storage.vue",
