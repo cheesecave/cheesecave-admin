@@ -36,7 +36,7 @@ function _blankProbeForm() {
 }
 
 function _blankSimIdentity() {
-  return { mode: "anonymous", username: "", user_id: null };
+  return { mode: "anonymous", username: "" };
 }
 
 // ----- module-level singletons -----

@@ -3,6 +3,7 @@ import { getApiErrorMessage } from "@/utils/api-error";
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import AdminLayout from "@/components/AdminLayout.vue";
+import EntityPicker from "@/components/common/EntityPicker.vue";
 import AdminPage from "@/components/AdminPage.vue";
 import AdminPageHeader from "@/components/AdminPageHeader.vue";
 import ProbeReportView from "@/components/ProbeReportView.vue";
@@ -16,9 +17,7 @@ import {
   getFallbackCacheStats,
   clearFallbackCache,
   invalidateFallbackRepoCache,
-  invalidateFallbackUserCacheById,
   invalidateFallbackUserCacheByUsername,
-  listUsers,
   listRepositories,
   bulkReplaceFallbackSources,
   runFallbackChainSimulate,
@@ -57,14 +56,10 @@ const evictRepoForm = ref({
   name: "",
 });
 
-// Per-user eviction dialog. ``mode`` toggles between username- and
-// user_id-keyed paths so an admin who only knows one of the two doesn't
-// have to leave the page to look up the other.
+// Per-user eviction dialog. The user is picked (name, email or id) with an EntityPicker, which hands over the username.
 const evictUserDialogVisible = ref(false);
 const evictUserForm = ref({
-  mode: "username", // "username" | "user_id"
   username: "",
-  user_id: null,
 });
 
 function checkAuth() {
@@ -255,54 +250,10 @@ function openEvictRepoDialog() {
   evictRepoDialogVisible.value = true;
 }
 
-// Autocomplete suggestion fetchers (#79). Each is scoped to the right
-// admin lookup for the field it serves:
-//
-//  - namespace (evict-by-repo dialog) → ``listUsers(include_orgs=true)``
-//    because a repository's namespace is either a user **or** an
-//    organisation, and listUsers in that mode returns the union.
-//
-//  - repo name (evict-by-repo dialog, given a fixed namespace) →
-//    ``listRepositories(namespace, repo_type)`` for the
-//    namespace-scoped enumeration. The query string filters
-//    server-side via the existing ``search`` param.
-//
-//  - username (evict-by-user dialog, username mode) →
-//    ``listUsers(include_orgs=false)``. Per the post-#79 cache key
-//    shape ``(user_id_or_None, tokens_hash, repo_type, ns, name)``,
-//    user_id is the request originator — orgs never originate a
-//    request, so they have no cache bucket to evict and don't belong
-//    in these suggestions.
-//
-// All three return ``{value: string}[]`` per Element Plus's
-// ``el-autocomplete`` ``fetch-suggestions`` contract.
-async function fetchNamespaceSuggestions(query, cb) {
-  if (!checkAuth()) {
-    cb([]);
-    return;
-  }
-  try {
-    if (!query || query.length < 1) {
-      cb([]);
-      return;
-    }
-    const data = await listUsers(adminStore.token, {
-      search: query,
-      limit: 20,
-      include_orgs: true, // namespaces span both users and orgs
-    });
-    const items = Array.isArray(data) ? data : data?.users || data?.items || [];
-    cb(
-      items
-        .filter((u) => u.username)
-        .map((u) => ({ value: u.username })),
-    );
-  } catch (error) {
-    console.error("Failed to fetch namespace suggestions:", error);
-    cb([]);
-  }
-}
-
+// Repo-name suggestion fetcher (#79): ``listRepositories(namespace, repo_type)`` for the namespace-scoped enumeration, the
+// query string filtering server-side via the existing ``search`` param. It returns ``{value: string}[]`` per Element Plus's
+// ``el-autocomplete`` ``fetch-suggestions`` contract. The namespace and user fields are EntityPickers, which search users and
+// organizations by name, email or id on their own.
 async function fetchRepoNameSuggestions(query, cb) {
   if (!checkAuth()) {
     cb([]);
@@ -377,43 +328,8 @@ async function fetchProbeRepoNameSuggestions(query, cb) {
   }
 }
 
-async function fetchUsernameSuggestions(query, cb) {
-  if (!checkAuth()) {
-    cb([]);
-    return;
-  }
-  try {
-    if (!query || query.length < 1) {
-      cb([]);
-      return;
-    }
-    // ``include_orgs: false`` — fallback cache buckets are keyed by the
-    // real user_id of the request originator. Orgs never make requests
-    // themselves, so they have no bucket to evict and don't belong in
-    // these suggestions.
-    const data = await listUsers(adminStore.token, {
-      search: query,
-      limit: 20,
-      include_orgs: false,
-    });
-    const items = Array.isArray(data) ? data : data?.users || data?.items || [];
-    cb(
-      items
-        .filter((u) => u.username)
-        .map((u) => ({ value: u.username })),
-    );
-  } catch (error) {
-    console.error("Failed to fetch username suggestions:", error);
-    cb([]);
-  }
-}
-
 function openEvictUserDialog() {
-  evictUserForm.value = {
-    mode: "username",
-    username: "",
-    user_id: null,
-  };
+  evictUserForm.value = { username: "" };
   evictUserDialogVisible.value = true;
 }
 
@@ -450,28 +366,19 @@ async function handleEvictRepo() {
 async function handleEvictUser() {
   if (!checkAuth()) return;
 
-  const { mode, username, user_id } = evictUserForm.value;
+  const { username } = evictUserForm.value;
 
-  if (mode === "username") {
-    if (!username || !username.trim()) {
-      ElMessage.error("Username is required");
-      return;
-    }
-  } else {
-    if (user_id == null || Number.isNaN(Number(user_id)) || Number(user_id) <= 0) {
-      ElMessage.error("user_id must be a positive integer");
-      return;
-    }
+  if (!username || !username.trim()) {
+    ElMessage.error("Username is required");
+    return;
   }
 
   // Strong confirm — per-user eviction crosses every repo this user has
   // bound. See PR #81 review item #5–#12 noted comment for the
   // confirm-on-broad-scope rule.
   try {
-    const targetLabel =
-      mode === "username" ? `username "${username}"` : `user_id ${user_id}`;
     await ElMessageBox.confirm(
-      `Evict every cached fallback binding for ${targetLabel}? This drops every repo binding the user has cached and forces a re-probe on their next request.`,
+      `Evict every cached fallback binding for username "${username}"? This drops every repo binding the user has cached and forces a re-probe on their next request.`,
       "Confirm User Cache Eviction",
       {
         confirmButtonText: "Evict",
@@ -488,22 +395,11 @@ async function handleEvictUser() {
 
   loading.value = true;
   try {
-    let result;
-    if (mode === "username") {
-      result = await invalidateFallbackUserCacheByUsername(
-        adminStore.token,
-        username.trim(),
-      );
-    } else {
-      result = await invalidateFallbackUserCacheById(
-        adminStore.token,
-        Number(user_id),
-      );
-    }
-    const tail =
-      mode === "username"
-        ? `${username} (user_id=${result.user_id})`
-        : `user_id=${user_id}`;
+    const result = await invalidateFallbackUserCacheByUsername(
+      adminStore.token,
+      username.trim(),
+    );
+    const tail = `${username} (user_id=${result.user_id})`;
     ElMessage.success(
       `Evicted ${result.evicted} cache entr${result.evicted === 1 ? "y" : "ies"} for ${tail}`,
     );
@@ -747,12 +643,6 @@ async function runSimulate() {
     };
     if (simIdentity.value.mode === "username" && simIdentity.value.username) {
       payload.as_username = simIdentity.value.username.trim();
-    } else if (
-      simIdentity.value.mode === "user_id" &&
-      simIdentity.value.user_id != null &&
-      Number(simIdentity.value.user_id) > 0
-    ) {
-      payload.as_user_id = Number(simIdentity.value.user_id);
     }
     simReport.value = await runFallbackChainSimulate(adminStore.token, payload);
   } catch (error) {
@@ -1003,12 +893,11 @@ onMounted(async () => {
               </el-select>
             </el-form-item>
             <el-form-item label="Namespace" required>
-              <el-autocomplete
+              <EntityPicker
                 v-model="probeForm.namespace"
-                :fetch-suggestions="fetchNamespaceSuggestions"
-                placeholder="owner / org"
-                clearable
-                style="width: 100%"
+                :kinds="['user', 'org']"
+                allow-free-text
+                placeholder="owner / org (a name, email or id)"
                 data-testid="probe-namespace"
               />
             </el-form-item>
@@ -1152,10 +1041,11 @@ onMounted(async () => {
                         />
                       </el-form-item>
                       <el-form-item label="Namespace">
-                        <el-input
+                        <EntityPicker
                           v-model="src.namespace"
-                          @input="_markDirty"
-                          placeholder="(empty for global)"
+                          :kinds="['user', 'org']"
+                          placeholder="Global (pick a user or organization to limit it)"
+                          @change="_markDirty"
                         />
                       </el-form-item>
                       <el-form-item label="Token">
@@ -1233,7 +1123,7 @@ onMounted(async () => {
                 <h2 class="tester-section-title">User state — identity</h2>
                 <p class="tester-section-hint">
                   Impersonate which user the probe runs as. Anonymous
-                  is a public caller; by-username / by-user_id load
+                  is a public caller; a user loads
                   that user's
                   <code>UserExternalToken</code>
                   rows from the DB so per-user tokens enter the chain
@@ -1246,23 +1136,15 @@ onMounted(async () => {
                       data-testid="sim-identity-mode"
                     >
                       <el-radio value="anonymous">Anonymous</el-radio>
-                      <el-radio value="username">By username</el-radio>
-                      <el-radio value="user_id">By user_id</el-radio>
+                      <el-radio value="username">As a user</el-radio>
                     </el-radio-group>
                   </el-form-item>
-                  <el-form-item v-if="simIdentity.mode === 'username'" label="Username">
-                    <el-input
+                  <el-form-item v-if="simIdentity.mode === 'username'" label="User">
+                    <EntityPicker
                       v-model="simIdentity.username"
-                      placeholder="e.g. mai_lin"
+                      :kinds="['user']"
+                      placeholder="Search a name, email or id"
                       data-testid="sim-identity-username"
-                    />
-                  </el-form-item>
-                  <el-form-item v-if="simIdentity.mode === 'user_id'" label="User ID">
-                    <el-input-number
-                      v-model="simIdentity.user_id"
-                      :min="1"
-                      style="width: 100%"
-                      data-testid="sim-identity-userid"
                     />
                   </el-form-item>
                 </el-form>
@@ -1722,9 +1604,11 @@ onMounted(async () => {
           </el-form-item>
 
           <el-form-item label="Namespace">
-            <el-input
+            <EntityPicker
               v-model="formData.namespace"
-              placeholder="(empty for global)"
+              :kinds="['user', 'org']"
+              placeholder="Global (pick a user or organization to limit it)"
+              data-testid="source-namespace"
             />
             <div class="form-help">
               Empty = global, or specify user/org name
@@ -1769,12 +1653,11 @@ onMounted(async () => {
             </el-select>
           </el-form-item>
           <el-form-item label="Namespace" required>
-            <el-autocomplete
+            <EntityPicker
               v-model="evictRepoForm.namespace"
-              :fetch-suggestions="fetchNamespaceSuggestions"
-              placeholder="owner / org name"
-              clearable
-              style="width: 100%"
+              :kinds="['user', 'org']"
+              allow-free-text
+              placeholder="owner / org (a name, email or id)"
               data-testid="evict-repo-namespace"
             />
           </el-form-item>
@@ -1812,39 +1695,16 @@ onMounted(async () => {
         <p class="dialog-help">
           Drop every cached source binding belonging to one user (across
           every repo they have a binding for). The next request from that
-          user re-probes the chain. Address by username (resolved
-          server-side) or numeric user_id (script-friendly).
+          user re-probes the chain. Pick the account by name,
+          email or id.
         </p>
         <el-form :model="evictUserForm" label-width="120px">
-          <el-form-item label="Mode" required>
-            <el-radio-group
-              v-model="evictUserForm.mode"
-              data-testid="evict-user-mode"
-            >
-              <el-radio value="username">By username</el-radio>
-              <el-radio value="user_id">By user_id</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item
-            v-if="evictUserForm.mode === 'username'"
-            label="Username"
-            required
-          >
-            <el-autocomplete
+          <el-form-item label="User" required>
+            <EntityPicker
               v-model="evictUserForm.username"
-              :fetch-suggestions="fetchUsernameSuggestions"
-              placeholder="e.g. mai_lin"
-              clearable
-              style="width: 100%"
+              :kinds="['user']"
+              placeholder="Search a name, email or id"
               data-testid="evict-user-username"
-            />
-          </el-form-item>
-          <el-form-item v-else label="User ID" required>
-            <el-input-number
-              v-model="evictUserForm.user_id"
-              :min="1"
-              style="width: 100%"
-              data-testid="evict-user-userid"
             />
           </el-form-item>
         </el-form>

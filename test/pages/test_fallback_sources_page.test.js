@@ -184,8 +184,37 @@ const ElAutocompleteStub = defineComponent({
   },
 });
 
+// The real EntityPicker is tested on its own (test/components/common). Here it is a text box that reports what is typed,
+// so the page's own logic (what it does with a chosen name) is what these tests exercise.
+const EntityPickerStub = defineComponent({
+  name: "EntityPicker",
+  inheritAttrs: false,
+  props: {
+    modelValue: { type: [String, Number], default: "" },
+    kinds: { type: Array, default: () => [] },
+    allowFreeText: { type: Boolean, default: false },
+    placeholder: { type: String, default: "" },
+  },
+  emits: ["update:modelValue", "change"],
+  setup(props, { emit, attrs }) {
+    return () =>
+      h("div", { ...attrs, "data-entity-picker": "true", "data-kinds": props.kinds.join(","), "data-free-text": String(props.allowFreeText) }, [
+        h("input", {
+          type: "text",
+          value: props.modelValue ?? "",
+          placeholder: props.placeholder,
+          onInput: (event) => {
+            emit("update:modelValue", event.target.value);
+            emit("change", event.target.value ? { username: event.target.value } : null);
+          },
+        }),
+      ]);
+  },
+});
+
 const stubs = {
   ...ElementPlusStubs,
+  EntityPicker: EntityPickerStub,
   ElRadioGroup: ElRadioGroupStub,
   ElRadio: ElRadioStub,
   ElSwitch: ElSwitchStub,
@@ -711,133 +740,6 @@ describe("admin fallback-sources page", () => {
   // Autocomplete suggestion fetchers
   // -----------------------------------------------------------------
 
-  it("fetches namespace suggestions via listUsers(include_orgs=true)", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    mocks.api.listUsers.mockResolvedValue({
-      users: [
-        { username: "openai-community" },
-        { username: "openai" },
-      ],
-    });
-    const wrapper = mountPage();
-    await flushPromises();
-
-    await wrapper.get('[data-testid="evict-repo-button"]').trigger("click");
-    await flushPromises();
-    await wrapper
-      .get('[data-testid="evict-repo-namespace"] input')
-      .setValue("openai");
-    await flushPromises();
-
-    expect(mocks.api.listUsers).toHaveBeenCalledWith(
-      "admin-token",
-      expect.objectContaining({
-        search: "openai",
-        limit: 20,
-        include_orgs: true,
-      }),
-    );
-    expect(
-      globalThis.window.__lastAutocompleteSuggestions.map((s) => s.value),
-    ).toEqual(["openai-community", "openai"]);
-  });
-
-  it("namespace fetcher returns [] for empty query", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    const wrapper = mountPage();
-    await flushPromises();
-
-    await wrapper.get('[data-testid="evict-repo-button"]').trigger("click");
-    await flushPromises();
-    globalThis.window.__lastAutocompleteSuggestions = [];
-    await wrapper
-      .get('[data-testid="evict-repo-namespace"] input')
-      .setValue("");
-    await flushPromises();
-    expect(mocks.api.listUsers).not.toHaveBeenCalled();
-    expect(globalThis.window.__lastAutocompleteSuggestions).toEqual([]);
-  });
-
-  it("namespace fetcher swallows API errors and returns []", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    mocks.api.listUsers.mockRejectedValue(new Error("listUsers boom"));
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const wrapper = mountPage();
-    await flushPromises();
-
-    await wrapper.get('[data-testid="evict-repo-button"]').trigger("click");
-    await flushPromises();
-    globalThis.window.__lastAutocompleteSuggestions = ["unset"];
-    await wrapper
-      .get('[data-testid="evict-repo-namespace"] input')
-      .setValue("anything");
-    await flushPromises();
-    expect(globalThis.window.__lastAutocompleteSuggestions).toEqual([]);
-    consoleSpy.mockRestore();
-  });
-
-  it("namespace fetcher honors checkAuth (no token -> []) and pushes to login", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    const wrapper = mountPage();
-    await flushPromises();
-
-    await wrapper.get('[data-testid="evict-repo-button"]').trigger("click");
-    await flushPromises();
-    mocks.adminStore.token = null;
-    globalThis.window.__lastAutocompleteSuggestions = ["unset"];
-    await wrapper
-      .get('[data-testid="evict-repo-namespace"] input')
-      .setValue("openai");
-    await flushPromises();
-    expect(mocks.api.listUsers).not.toHaveBeenCalled();
-    expect(globalThis.window.__lastAutocompleteSuggestions).toEqual([]);
-    expect(mocks.router.push).toHaveBeenCalledWith("/login");
-  });
-
-  it("namespace fetcher unwraps {items} response shape (vs {users})", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    mocks.api.listUsers.mockResolvedValue({
-      items: [{ username: "items_shaped_org" }],
-    });
-    const wrapper = mountPage();
-    await flushPromises();
-
-    await wrapper.get('[data-testid="evict-repo-button"]').trigger("click");
-    await flushPromises();
-    await wrapper
-      .get('[data-testid="evict-repo-namespace"] input')
-      .setValue("items");
-    await flushPromises();
-    expect(
-      globalThis.window.__lastAutocompleteSuggestions.map((s) => s.value),
-    ).toEqual(["items_shaped_org"]);
-  });
-
-  it("namespace fetcher accepts raw array response shape", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    mocks.api.listUsers.mockResolvedValue([
-      { username: "raw_array_ns" },
-    ]);
-    const wrapper = mountPage();
-    await flushPromises();
-
-    await wrapper.get('[data-testid="evict-repo-button"]').trigger("click");
-    await flushPromises();
-    await wrapper
-      .get('[data-testid="evict-repo-namespace"] input')
-      .setValue("raw");
-    await flushPromises();
-    expect(
-      globalThis.window.__lastAutocompleteSuggestions.map((s) => s.value),
-    ).toEqual(["raw_array_ns"]);
-  });
-
   it("fetches repo-name suggestions filtered by repo_type + namespace", async () => {
     mocks.api.listFallbackSources.mockResolvedValue([]);
     mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
@@ -982,161 +884,6 @@ describe("admin fallback-sources page", () => {
     expect(globalThis.window.__lastAutocompleteSuggestions).toEqual([]);
     expect(mocks.router.push).toHaveBeenCalledWith("/login");
   });
-
-  it("fetches username suggestions via listUsers on input", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    mocks.api.listUsers.mockResolvedValue({
-      users: [
-        { username: "mai_lin" },
-        { username: "mai_admin" },
-      ],
-    });
-    const wrapper = mountPage();
-    await flushPromises();
-
-    await wrapper.get('[data-testid="evict-user-button"]').trigger("click");
-    await flushPromises();
-    await wrapper
-      .get('[data-testid="evict-user-username"] input')
-      .setValue("mai");
-    await flushPromises();
-    expect(mocks.api.listUsers).toHaveBeenCalledWith(
-      "admin-token",
-      expect.objectContaining({
-        search: "mai",
-        limit: 20,
-        include_orgs: false,
-      }),
-    );
-    expect(
-      globalThis.window.__lastAutocompleteSuggestions.map((s) => s.value),
-    ).toEqual(["mai_lin", "mai_admin"]);
-  });
-
-  it("username fetcher returns [] for empty query", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    const wrapper = mountPage();
-    await flushPromises();
-    await wrapper.get('[data-testid="evict-user-button"]').trigger("click");
-    await flushPromises();
-    globalThis.window.__lastAutocompleteSuggestions = ["unset"];
-    await wrapper
-      .get('[data-testid="evict-user-username"] input')
-      .setValue("");
-    await flushPromises();
-    expect(mocks.api.listUsers).not.toHaveBeenCalled();
-    expect(globalThis.window.__lastAutocompleteSuggestions).toEqual([]);
-  });
-
-  it("username fetcher swallows API errors", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    mocks.api.listUsers.mockRejectedValue(new Error("users boom"));
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const wrapper = mountPage();
-    await flushPromises();
-    await wrapper.get('[data-testid="evict-user-button"]').trigger("click");
-    await flushPromises();
-    globalThis.window.__lastAutocompleteSuggestions = ["unset"];
-    await wrapper
-      .get('[data-testid="evict-user-username"] input')
-      .setValue("m");
-    await flushPromises();
-    expect(globalThis.window.__lastAutocompleteSuggestions).toEqual([]);
-    consoleSpy.mockRestore();
-  });
-
-  it("username fetcher honors checkAuth", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    const wrapper = mountPage();
-    await flushPromises();
-    await wrapper.get('[data-testid="evict-user-button"]').trigger("click");
-    await flushPromises();
-    mocks.adminStore.token = null;
-    globalThis.window.__lastAutocompleteSuggestions = ["unset"];
-    await wrapper
-      .get('[data-testid="evict-user-username"] input')
-      .setValue("m");
-    await flushPromises();
-    expect(globalThis.window.__lastAutocompleteSuggestions).toEqual([]);
-    expect(mocks.router.push).toHaveBeenCalledWith("/login");
-  });
-
-
-  it("namespace fetcher handles null / empty response shape", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    mocks.api.listUsers.mockResolvedValue(null);
-    const wrapper = mountPage();
-    await flushPromises();
-    await wrapper.get('[data-testid="evict-repo-button"]').trigger("click");
-    await flushPromises();
-    globalThis.window.__lastAutocompleteSuggestions = ["unset"];
-    await wrapper
-      .get('[data-testid="evict-repo-namespace"] input')
-      .setValue("anything");
-    await flushPromises();
-    expect(globalThis.window.__lastAutocompleteSuggestions).toEqual([]);
-  });
-
-  it("username fetcher handles null / empty response shape", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    mocks.api.listUsers.mockResolvedValue(null);
-    const wrapper = mountPage();
-    await flushPromises();
-    await wrapper.get('[data-testid="evict-user-button"]').trigger("click");
-    await flushPromises();
-    globalThis.window.__lastAutocompleteSuggestions = ["unset"];
-    await wrapper
-      .get('[data-testid="evict-user-username"] input')
-      .setValue("anything");
-    await flushPromises();
-    expect(globalThis.window.__lastAutocompleteSuggestions).toEqual([]);
-  });
-
-  it("username fetcher unwraps {items} shape (vs {users} shape)", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    mocks.api.listUsers.mockResolvedValue({
-      items: [{ username: "items_shaped_user" }],
-    });
-    const wrapper = mountPage();
-    await flushPromises();
-    await wrapper.get('[data-testid="evict-user-button"]').trigger("click");
-    await flushPromises();
-    await wrapper
-      .get('[data-testid="evict-user-username"] input')
-      .setValue("items");
-    await flushPromises();
-    expect(
-      globalThis.window.__lastAutocompleteSuggestions.map((s) => s.value),
-    ).toEqual(["items_shaped_user"]);
-  });
-
-  it("listUsers array shape (no .users / .items wrap)", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    mocks.api.listUsers.mockResolvedValue([{ username: "raw_array_user" }]);
-    const wrapper = mountPage();
-    await flushPromises();
-    await wrapper.get('[data-testid="evict-user-button"]').trigger("click");
-    await flushPromises();
-    await wrapper
-      .get('[data-testid="evict-user-username"] input')
-      .setValue("raw");
-    await flushPromises();
-    expect(
-      globalThis.window.__lastAutocompleteSuggestions.map((s) => s.value),
-    ).toEqual(["raw_array_user"]);
-  });
-
-  // -----------------------------------------------------------------
-  // NEW (#79): per-repo eviction dialog
-  // -----------------------------------------------------------------
 
   it("evicts a repo cache via the per-repo dialog", async () => {
     mocks.api.listFallbackSources.mockResolvedValue([]);
@@ -1312,45 +1059,6 @@ describe("admin fallback-sources page", () => {
     );
   });
 
-  it("evicts user cache by user_id after confirm + radio toggle", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    mocks.api.invalidateFallbackUserCacheById.mockResolvedValue({
-      success: true,
-      evicted: 1,
-      user_id: 7,
-    });
-    messageBoxConfirmSpy.mockResolvedValue("confirm");
-    const wrapper = mountPage();
-    await flushPromises();
-
-    await wrapper.get('[data-testid="evict-user-button"]').trigger("click");
-    await flushPromises();
-    const dialog = wrapper.get('[data-testid="evict-user-dialog"]');
-
-    // Switch radio to "user_id" mode by clicking the radio with that value.
-    const radioGroup = dialog.get('[data-testid="evict-user-mode"]');
-    const userIdRadio = radioGroup.get('[data-radio-value="user_id"]');
-    await userIdRadio.trigger("click");
-    await flushPromises();
-
-    // Now the user_id input should be visible.
-    const numberInput = dialog.get('[data-testid="evict-user-userid"]');
-    numberInput.element.value = "7";
-    await numberInput.trigger("input");
-
-    await dialog.get('[data-testid="evict-user-submit"]').trigger("click");
-    await flushPromises();
-
-    expect(mocks.api.invalidateFallbackUserCacheById).toHaveBeenCalledWith(
-      "admin-token",
-      7,
-    );
-    expect(messageSuccessSpy).toHaveBeenCalledWith(
-      "Evicted 1 cache entry for user_id=7",
-    );
-  });
-
   it("evict-by-user does nothing when confirm dialog is cancelled", async () => {
     mocks.api.listFallbackSources.mockResolvedValue([]);
     mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
@@ -1406,29 +1114,6 @@ describe("admin fallback-sources page", () => {
     await dialog.get('[data-testid="evict-user-submit"]').trigger("click");
     await flushPromises();
     expect(messageErrorSpy).toHaveBeenCalledWith("Username is required");
-  });
-
-  it("evict-by-user (user_id mode) rejects non-positive user_id", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    const wrapper = mountPage();
-    await flushPromises();
-
-    await wrapper.get('[data-testid="evict-user-button"]').trigger("click");
-    await flushPromises();
-    const dialog = wrapper.get('[data-testid="evict-user-dialog"]');
-
-    // Switch to user_id mode.
-    const radioGroup = dialog.get('[data-testid="evict-user-mode"]');
-    await radioGroup.get('[data-radio-value="user_id"]').trigger("click");
-    await flushPromises();
-
-    // Leave user_id null.
-    await dialog.get('[data-testid="evict-user-submit"]').trigger("click");
-    await flushPromises();
-    expect(messageErrorSpy).toHaveBeenCalledWith(
-      "user_id must be a positive integer",
-    );
   });
 
   it("evict-by-user surfaces 404 / unknown-user backend error", async () => {
@@ -2306,27 +1991,6 @@ describe("admin fallback-sources page", () => {
     expect(wrapper.text()).toContain("LOCAL_HIT");
   });
 
-  it("Run simulate uses as_user_id when identity mode is user_id", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([SOURCE_HF]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    mocks.api.runFallbackChainSimulate.mockResolvedValue(_stubSimReport());
-    const wrapper = mountPage();
-    await flushPromises();
-    await wrapper.get('[data-testid="probe-namespace"] input').setValue("openai");
-    await wrapper.get('[data-testid="probe-name"] input').setValue("gpt2");
-    const userMode = wrapper.get('[data-testid="sim-identity-mode"]');
-    await userMode.get('[data-radio-value="user_id"]').trigger("click");
-    await flushPromises();
-    const uid = wrapper.get('[data-testid="sim-identity-userid"]');
-    uid.element.value = "42";
-    await uid.trigger("input");
-    await wrapper.get('[data-testid="run-simulate-btn"]').trigger("click");
-    await flushPromises();
-    const [, payload] = mocks.api.runFallbackChainSimulate.mock.calls[0];
-    expect(payload.as_user_id).toBe(42);
-    expect(payload.as_username).toBeUndefined();
-  });
-
   it("Run simulate anonymous → no as_* fields", async () => {
     mocks.api.listFallbackSources.mockResolvedValue([SOURCE_HF]);
     mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
@@ -2447,32 +2111,6 @@ describe("admin fallback-sources page", () => {
   // Chain Tester probe-target autocomplete (#78 follow-up)
   // -----------------------------------------------------------------
 
-  it("probe namespace input fetches suggestions via listUsers(include_orgs=true)", async () => {
-    mocks.api.listFallbackSources.mockResolvedValue([SOURCE_HF]);
-    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
-    mocks.api.listUsers.mockResolvedValue({
-      users: [{ username: "openai-community" }, { username: "openai" }],
-    });
-    const wrapper = mountPage();
-    await flushPromises();
-    await wrapper
-      .get('[data-testid="probe-namespace"] input')
-      .setValue("openai");
-    await flushPromises();
-
-    expect(mocks.api.listUsers).toHaveBeenCalledWith(
-      "admin-token",
-      expect.objectContaining({
-        search: "openai",
-        limit: 20,
-        include_orgs: true,
-      }),
-    );
-    expect(
-      globalThis.window.__lastAutocompleteSuggestions.map((s) => s.value),
-    ).toEqual(["openai-community", "openai"]);
-  });
-
   it("probe name input fetches suggestions via listRepositories scoped to probeForm namespace + repo_type", async () => {
     mocks.api.listFallbackSources.mockResolvedValue([SOURCE_HF]);
     mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
@@ -2567,4 +2205,91 @@ describe("admin fallback-sources page", () => {
     ).toEqual(["raw-array-repo"]);
   });
 
+  // -----------------------------------------------------------------
+  // The user / organization fields are pickers (name, email or id), not boxes for an id or an exact name.
+  // -----------------------------------------------------------------
+
+  const pickerOf = (root, testid) => root.get(`[data-testid="${testid}"]`);
+
+  it("the evict-by-user dialog picks one user: no mode switch and no user_id box any more", async () => {
+    mocks.api.listFallbackSources.mockResolvedValue([]);
+    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
+    const wrapper = mountPage();
+    await flushPromises();
+    await wrapper.get('[data-testid="evict-user-button"]').trigger("click");
+    await flushPromises();
+    const dialog = wrapper.get('[data-testid="evict-user-dialog"]');
+
+    const picker = pickerOf(dialog, "evict-user-username");
+    expect(picker.attributes("data-kinds")).toBe("user");
+    expect(picker.attributes("data-free-text")).toBe("false");
+    expect(dialog.find('[data-testid="evict-user-mode"]').exists()).toBe(false);
+    expect(dialog.find('[data-testid="evict-user-userid"]').exists()).toBe(false);
+  });
+
+  it("the evict-by-repo and probe namespaces take users, organizations and any text (upstream names need not exist here)", async () => {
+    mocks.api.listFallbackSources.mockResolvedValue([]);
+    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
+    const wrapper = mountPage();
+    await flushPromises();
+    await wrapper.get('[data-testid="evict-repo-button"]').trigger("click");
+    await flushPromises();
+
+    for (const testid of ["evict-repo-namespace", "probe-namespace"]) {
+      const picker = pickerOf(wrapper, testid);
+      expect(picker.attributes("data-kinds")).toBe("user,org");
+      expect(picker.attributes("data-free-text")).toBe("true");
+    }
+  });
+
+  it("a source's namespace is picked from users and organizations, in the dialog and in a chain-tester row", async () => {
+    mocks.api.listFallbackSources.mockResolvedValue([SOURCE_HF]);
+    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
+    const wrapper = mountPage();
+    await flushPromises();
+
+    wrapper.vm.openCreateDialog();
+    await flushPromises();
+    const inDialog = pickerOf(wrapper, "source-namespace");
+    expect(inDialog.attributes("data-kinds")).toBe("user,org");
+    expect(inDialog.attributes("data-free-text")).toBe("false");
+
+    await wrapper.get('[data-testid="load-from-system-btn"]').trigger("click");
+    await flushPromises();
+    const row = wrapper.get('[data-testid="draft-row-0"]').get("[data-entity-picker]");
+    expect(row.attributes("data-kinds")).toBe("user,org");
+    expect(row.attributes("data-free-text")).toBe("false");
+  });
+
+  it("picking a namespace in a chain-tester row marks the draft dirty", async () => {
+    mocks.api.listFallbackSources.mockResolvedValue([SOURCE_HF]);
+    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
+    const wrapper = mountPage();
+    await flushPromises();
+    await wrapper.get('[data-testid="load-from-system-btn"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.find('[data-testid="draft-dirty-tag"]').exists()).toBe(false);
+
+    await wrapper.get('[data-testid="draft-row-0"]').get("[data-entity-picker] input").setValue("aurora-labs");
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="draft-dirty-tag"]').exists()).toBe(true);
+  });
+
+  it("the simulator runs as nobody or as a picked user, and has no user_id mode", async () => {
+    mocks.api.listFallbackSources.mockResolvedValue([]);
+    mocks.api.getFallbackCacheStats.mockResolvedValue(STATS);
+    const wrapper = mountPage();
+    await flushPromises();
+    const modes = wrapper.get('[data-testid="sim-identity-mode"]');
+
+    expect(modes.findAll("[data-radio-value]").map((r) => r.attributes("data-radio-value"))).toEqual(["anonymous", "username"]);
+    expect(wrapper.find('[data-testid="sim-identity-username"]').exists()).toBe(false);
+    await modes.get('[data-radio-value="username"]').trigger("click");
+    await flushPromises();
+    const picker = pickerOf(wrapper, "sim-identity-username");
+    expect(picker.attributes("data-kinds")).toBe("user");
+    expect(wrapper.find('[data-testid="sim-identity-userid"]').exists()).toBe(false);
+  });
 });
+
