@@ -963,14 +963,56 @@ export async function getDatabaseQueryTemplates(token) {
 }
 
 /**
+ * The live schema: groups, tables, columns, keys, indexes, estimates and drift
+ * @param {string} token - Admin token
+ * @returns {Promise<Object>} Schema
+ */
+export async function getDatabaseSchema(token) {
+  const response = await createAdminClient(token).get("/database/schema");
+  return response.data;
+}
+
+/**
+ * The reports that ship with the backend
+ * @param {string} token - Admin token
+ * @returns {Promise<Object>} Categories and reports with their parameters
+ */
+export async function listDatabaseReports(token) {
+  const response = await createAdminClient(token).get("/database/reports");
+  return response.data;
+}
+
+/**
+ * Run one report
+ * @param {string} token - Admin token
+ * @param {string} id - Report id
+ * @param {Object} params - Parameter values
+ * @param {Object} options - { explain, max_rows }
+ * @returns {Promise<Object>} Query results
+ */
+export async function runDatabaseReport(token, id, params = {}, options = {}) {
+  const response = await createAdminClient(token).post(
+    `/database/reports/${encodeURIComponent(id)}/run`,
+    { params, ...options },
+    { timeout: 30000 },
+  );
+  return response.data;
+}
+
+/**
  * Execute SQL query (read-only)
  * @param {string} token - Admin token
  * @param {string} sql - SQL query string
+ * @param {Object} options - { explain, max_rows }
  * @returns {Promise<Object>} Query results
  */
-export async function executeDatabaseQuery(token, sql) {
+export async function executeDatabaseQuery(token, sql, options = {}) {
   const client = createAdminClient(token);
-  const response = await client.post("/database/query", { sql });
+  const response = await client.post(
+    "/database/query",
+    { sql, ...options },
+    { timeout: 30000 },
+  );
   return response.data;
 }
 
