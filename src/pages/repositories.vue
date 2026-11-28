@@ -526,12 +526,11 @@ onMounted(async () => {
               <div class="flex items-center gap-2">
                 <span class="font-mono">{{ row.full_id }}</span>
                 <el-tag
-                  v-if="row.private"
-                  type="warning"
+                  :type="row.private ? 'warning' : 'success'"
                   size="small"
                   effect="plain"
                 >
-                  Private
+                  {{ row.private ? (row.invite_mode ? "Invite" : "Private") : "Public" }}
                 </el-tag>
               </div>
             </template>
@@ -636,7 +635,7 @@ onMounted(async () => {
                   :type="selectedRepo.private ? 'warning' : 'success'"
                   effect="plain"
                 >
-                  {{ selectedRepo.private ? "Private" : "Public" }}
+                  {{ selectedRepo.private ? (selectedRepo.invite_mode ? "Invite" : "Private") : "Public" }}
                 </el-tag>
               </div>
 

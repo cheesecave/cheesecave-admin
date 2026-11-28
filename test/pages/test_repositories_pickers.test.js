@@ -85,6 +85,32 @@ describe("repositories: namespaces are picked, not typed", () => {
     expect(mocks.api.listRepositories.mock.calls.at(-1)[1].namespace).toBe("aurora-labs");
   });
 
+  describe("repository visibility", () => {
+    it.each([
+      ["Public", { private: false, invite_mode: false, visibility: "public" }, "success"],
+      ["Private", { private: true, invite_mode: false, visibility: "private" }, "warning"],
+      ["Invite", { private: true, invite_mode: true, visibility: "invite" }, "warning"],
+      ["Private", { private: true }, "warning"],
+    ])("shows %s in the list and detail without changing privacy", async (label, visibility, color) => {
+      const repository = { ...REPO, ...visibility };
+      mocks.api.listRepositories.mockResolvedValue({ repositories: [repository], total: 1 });
+      mocks.api.getRepositoryDetails.mockResolvedValue(repository);
+
+      const w = await mountPage();
+      const listBadge = w.get('[data-col-label="Repository"] [data-el-tag]');
+      expect(listBadge.text()).toBe(label);
+      expect(listBadge.attributes("data-type")).toBe(color);
+
+      await button(w, "View Details").trigger("click");
+      await flushPromises();
+      const detailBadge = w.get('[data-tab="overview"] [data-el-tag][data-effect="plain"]');
+      expect(detailBadge.text()).toBe(label);
+      expect(detailBadge.attributes("data-type")).toBe(color);
+      expect(w.vm.selectedRepo.private).toBe(visibility.private);
+      w.unmount();
+    });
+  });
+
   describe("moving a repository", () => {
     const openActions = async () => {
       const w = await mountPage();
