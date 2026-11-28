@@ -289,7 +289,7 @@ export async function createUser(token, userData) {
  */
 export async function deleteUser(token, username, force = false) {
   const client = createAdminClient(token);
-  const response = await client.delete(`/users/${username}`, {
+  const response = await client.delete(`/users/${pathSegment(username)}`, {
     params: { force },
   });
   return response.data;
@@ -305,7 +305,7 @@ export async function deleteUser(token, username, force = false) {
 export async function setEmailVerification(token, username, verified) {
   const client = createAdminClient(token);
   const response = await client.patch(
-    `/users/${username}/email-verification`,
+    `/users/${pathSegment(username)}/email-verification`,
     null,
     {
       params: { verified },
@@ -329,7 +329,7 @@ export async function updateUserQuota(
   publicQuotaBytes,
 ) {
   const client = createAdminClient(token);
-  const response = await client.put(`/users/${username}/quota`, {
+  const response = await client.put(`/users/${pathSegment(username)}/quota`, {
     private_quota_bytes: privateQuotaBytes,
     public_quota_bytes: publicQuotaBytes,
   });
@@ -344,7 +344,9 @@ export async function updateUserQuota(
  */
 export async function getPasswordResetStatus(token, username) {
   const client = createAdminClient(token);
-  const response = await client.get(`/users/${username}/password-reset-link`);
+  const response = await client.get(
+    `/users/${pathSegment(username)}/password-reset-link`,
+  );
   return response.data;
 }
 
@@ -357,9 +359,12 @@ export async function getPasswordResetStatus(token, username) {
  */
 export async function createPasswordResetLink(token, username, ttl) {
   const client = createAdminClient(token);
-  const response = await client.post(`/users/${username}/password-reset-link`, {
-    ttl,
-  });
+  const response = await client.post(
+    `/users/${pathSegment(username)}/password-reset-link`,
+    {
+      ttl,
+    },
+  );
   return response.data;
 }
 
@@ -372,7 +377,7 @@ export async function createPasswordResetLink(token, username, ttl) {
 export async function revokePasswordResetLink(token, username) {
   const client = createAdminClient(token);
   const response = await client.delete(
-    `/users/${username}/password-reset-link`,
+    `/users/${pathSegment(username)}/password-reset-link`,
   );
   return response.data;
 }
